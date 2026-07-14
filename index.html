@@ -105,8 +105,8 @@
   .card .tag { font-family: var(--mono); font-size: 12px; color: var(--accent); letter-spacing: 1.5px; display: block; margin-bottom: 14px; }
 
   /* ---- Screens ---- */
-  .screens { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
-  .screen-item .phone { max-width: 300px; }
+  .screens { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; align-items: start; }
+  .screen-item .phone { max-width: 280px; }
   .screen-item figcaption { text-align: center; margin-top: 18px; }
   .screen-item figcaption b { display: block; font-size: 16px; margin-bottom: 4px; }
   .screen-item figcaption span { font-size: 14.5px; color: var(--dim); }
@@ -127,6 +127,24 @@
   .verdict b { font-family: var(--mono); font-size: 14px; letter-spacing: 1.5px; display: block; margin-bottom: 6px; }
   .verdict span { font-size: 13px; color: var(--dim); display: block; line-height: 1.45; }
 
+  /* ---- Planes ---- */
+  .plans { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; max-width: 820px; }
+  .plan {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 28px 26px; display: flex; flex-direction: column;
+  }
+  .plan-pro { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .plan .plan-name { font-family: var(--mono); font-size: 13px; letter-spacing: 2.5px; color: var(--dim); margin-bottom: 14px; }
+  .plan-pro .plan-name { color: var(--accent); }
+  .plan .price { font-size: 30px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 2px; }
+  .plan .price small { font-size: 14px; font-weight: 400; color: var(--dim); letter-spacing: 0; }
+  .plan .price-note { font-size: 13.5px; color: var(--dim); margin-bottom: 20px; }
+  .plan ul { list-style: none; margin-bottom: 24px; flex: 1; }
+  .plan li { font-size: 14.5px; color: var(--dim); padding: 5px 0 5px 22px; position: relative; }
+  .plan li::before { content: "+"; font-family: var(--mono); color: var(--accent); position: absolute; left: 0; }
+  .plan li b { color: var(--text); font-weight: 600; }
+  .plan .btn { text-align: center; }
+
   /* ---- CTA final ---- */
   .cta-final {
     background: var(--card); border: 1px solid var(--border); border-radius: 10px;
@@ -144,6 +162,7 @@
     .cards, .steps { grid-template-columns: 1fr; }
     .screens { grid-template-columns: 1fr; gap: 40px; }
     .scale { grid-template-columns: 1fr 1fr; }
+    .plans { grid-template-columns: 1fr; }
     section { padding: 56px 0; }
   }
 </style>
@@ -240,6 +259,13 @@
             <span>El precio de mercado en pesos, el ratio de conversión y el dólar CCL del día, al lado del análisis de la acción. Nadie más te lo muestra junto.</span>
           </figcaption>
         </figure>
+        <figure class="screen-item">
+          <div class="phone"><img src="img/noticias.jpg" alt="Pestaña de noticias de Verdikt: mosaico con portadas, filtrable por cripto, acciones y macro" width="390" height="844" loading="lazy"></div>
+          <figcaption>
+            <b>Las noticias, sin salir de la app</b>
+            <span>Cripto, acciones y el frente macro en un mosaico con portadas, filtrable por tema. El contexto detrás de cada veredicto, en el mismo lugar.</span>
+          </figcaption>
+        </figure>
       </div>
     </div>
   </section>
@@ -278,6 +304,41 @@
         <div class="verdict"><b class="v-neu">NEUTRAL</b><span>Sin ventaja clara, esperar</span></div>
         <div class="verdict"><b class="v-cau">CAUTELA</b><span>Debilidad técnica visible</span></div>
         <div class="verdict"><b class="v-avo">EVITAR</b><span>Señales fuertes en contra</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top: 0;">
+    <div class="wrap">
+      <div class="sec-title">Planes</div>
+      <h2>Empezá gratis, pasate a Pro cuando quieras seguirlo de cerca</h2>
+      <div class="plans">
+        <div class="plan">
+          <div class="plan-name">GRATIS</div>
+          <div class="price">$0</div>
+          <div class="price-note">Sin registro y sin límite de consultas.</div>
+          <ul>
+            <li><b>Veredicto y análisis completo</b> de los más de 100 activos</li>
+            <li>Gráfico de 6 meses con la media de 200 días</li>
+            <li>Movers del día y cambios de veredicto</li>
+            <li>Noticias de cripto, acciones y macro</li>
+            <li>Portafolio de hasta 5 posiciones</li>
+          </ul>
+          <a class="btn" href="https://screener-app-l1gw.onrender.com/">Probar gratis</a>
+        </div>
+        <div class="plan plan-pro">
+          <div class="plan-name">PRO</div>
+          <div class="price">$12.000 <small>ARS / 30 días</small></div>
+          <div class="price-note">Se paga por Mercado Pago. Sin renovación automática.</div>
+          <ul>
+            <li>Todo lo del plan gratis</li>
+            <li><b>Watchlist</b>: seguí los activos que te importan</li>
+            <li><b>Aviso cuando cambia el veredicto</b> de un activo seguido</li>
+            <li><b>Alertas de precio</b>: avisa cuando toca tu nivel</li>
+            <li>Portafolio sin límite de posiciones</li>
+          </ul>
+          <a class="btn btn-primary" href="https://screener-app-l1gw.onrender.com/">Empezar con Pro</a>
+        </div>
       </div>
     </div>
   </section>
