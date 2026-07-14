@@ -62,7 +62,9 @@
   .btn-sm { padding: 7px 14px; font-size: 14px; }
 
   /* ---- Hero ---- */
-  .hero { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 48px; align-items: center; padding: 72px 0 56px; }
+  /* OJO: .hero convive con .wrap en el mismo div y pisa su padding lateral —
+     hay que repetir los 22px horizontales acá. */
+  .hero { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 48px; align-items: center; padding: 72px 22px 56px; }
   .kicker { font-family: var(--mono); font-size: 13px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; margin-bottom: 18px; }
   h1 { font-size: clamp(34px, 5.2vw, 54px); line-height: 1.12; letter-spacing: -0.5px; margin-bottom: 20px; }
   .hero p.lead { font-size: 18px; color: var(--dim); max-width: 46ch; margin-bottom: 30px; }
@@ -159,7 +161,9 @@
   footer .copyright { font-family: var(--mono); font-size: 12px; margin-top: 18px; }
 
   @media (max-width: 860px) {
-    .hero { grid-template-columns: 1fr; padding: 52px 0 44px; gap: 40px; }
+    .hero { grid-template-columns: 1fr; padding: 52px 22px 44px; gap: 40px; }
+    .hero > div:first-child { text-align: center; }
+    .hero p.lead { margin-left: auto; margin-right: auto; }
     .cta-row { justify-content: center; }
     .fineprint { text-align: center; }
     .cards, .steps { grid-template-columns: 1fr; }
