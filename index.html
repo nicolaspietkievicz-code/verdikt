@@ -159,9 +159,13 @@
 
   @media (max-width: 860px) {
     .hero { grid-template-columns: 1fr; padding: 52px 0 44px; gap: 40px; }
+    .cta-row { justify-content: center; }
+    .fineprint { text-align: center; }
     .cards, .steps { grid-template-columns: 1fr; }
     .screens { grid-template-columns: 1fr; gap: 40px; }
     .scale { grid-template-columns: 1fr 1fr; }
+    /* 5 tarjetas en grilla de 2: la última (EVITAR) centrada, no colgada a la izquierda */
+    .scale .verdict:last-child { grid-column: 1 / -1; justify-self: center; width: calc(50% - 6px); }
     .plans { grid-template-columns: 1fr; }
     section { padding: 56px 0; }
   }
