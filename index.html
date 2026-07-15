@@ -34,12 +34,6 @@
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
   }
-
-  /* ---- Lluvia de tickers de fondo ----
-     z-index negativo: queda entre el fondo del body (que se pinta en el viewport)
-     y todo el contenido. Las tarjetas con fondo propio la tapan solas. */
-  #rain { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
-  @media (prefers-reduced-motion: reduce) { #rain { display: none; } }
   a { color: var(--accent); text-decoration: none; }
   .wrap { max-width: 1060px; margin: 0 auto; padding: 0 22px; }
 
@@ -183,8 +177,6 @@
 </style>
 </head>
 <body>
-
-<canvas id="rain" aria-hidden="true"></canvas>
 
 <header>
   <div class="wrap nav">
@@ -378,93 +370,6 @@
     <p class="copyright">© 2026 Verdikt. Todos los derechos reservados.</p>
   </div>
 </footer>
-
-<script>
-(function () {
-  // Lluvia de tickers: bien tenue, no tiene que competir con el contenido.
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-  var canvas = document.getElementById("rain");
-  var ctx = canvas.getContext("2d");
-
-  var TICKERS = [
-    "BTC", "ETH", "SOL", "XRP", "ADA", "LINK", "AVAX", "DOGE", "XLM", "ZEC",
-    "NVDA", "AAPL", "MELI", "TSLA", "MSFT", "GOOGL", "AMZN", "META", "AMD",
-    "UBER", "BA", "KO", "DIS", "JPM", "PYPL"
-  ];
-  // Casi todos en gris; cada tanto uno verde o rojo, apenas.
-  var COLORS = [
-    { c: "138,148,166", peso: 10 },  /* --dim */
-    { c: "47,191,113",  peso: 1 },   /* --buy */
-    { c: "224,82,107",  peso: 1 }    /* --avoid */
-  ];
-
-  var W, H, drops;
-
-  function pickColor() {
-    var total = 0, i;
-    for (i = 0; i < COLORS.length; i++) total += COLORS[i].peso;
-    var r = Math.random() * total;
-    for (i = 0; i < COLORS.length; i++) {
-      r -= COLORS[i].peso;
-      if (r <= 0) return COLORS[i].c;
-    }
-    return COLORS[0].c;
-  }
-
-  function newDrop(y) {
-    // depth 0..1: los "lejanos" son más chicos, más lentos y más apagados.
-    var depth = Math.random();
-    return {
-      text: TICKERS[Math.floor(Math.random() * TICKERS.length)],
-      x: Math.random() * W,
-      y: y !== undefined ? y : -20,
-      speed: 14 + depth * 34,               /* px por segundo */
-      size: 10 + depth * 4,
-      alpha: 0.035 + depth * 0.075,
-      color: pickColor()
-    };
-  }
-
-  function resize() {
-    var dpr = Math.min(window.devicePixelRatio || 1, 2);
-    W = window.innerWidth;
-    H = window.innerHeight;
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    canvas.style.width = W + "px";
-    canvas.style.height = H + "px";
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    // Densidad según ancho, con techo para no recargar pantallas grandes.
-    var count = Math.min(36, Math.max(14, Math.floor(W / 42)));
-    drops = [];
-    for (var i = 0; i < count; i++) drops.push(newDrop(Math.random() * H));
-  }
-
-  var last = performance.now();
-  function frame(now) {
-    var dt = Math.min((now - last) / 1000, 0.1); /* al volver de otra pestaña no saltan */
-    last = now;
-
-    ctx.clearRect(0, 0, W, H);
-    ctx.textAlign = "center";
-    for (var i = 0; i < drops.length; i++) {
-      var d = drops[i];
-      d.y += d.speed * dt;
-      if (d.y > H + 20) drops[i] = d = newDrop();
-      ctx.font = "700 " + d.size + "px ui-monospace, Consolas, 'Cascadia Mono', Menlo, monospace";
-      ctx.fillStyle = "rgba(" + d.color + "," + d.alpha + ")";
-      ctx.fillText(d.text, d.x, d.y);
-    }
-    requestAnimationFrame(frame);
-  }
-
-  window.addEventListener("resize", resize);
-  resize();
-  requestAnimationFrame(frame);
-})();
-</script>
 
 </body>
 </html>
