@@ -5,12 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Verdikt — Veredicto claro para cripto y CEDEARs</title>
 <meta name="description" content="Verdikt analiza cada cripto y cada CEDEAR para darte un veredicto claro: un puntaje de 0 a 100 con las razones detrás. Gratis, sin registro.">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+<meta name="theme-color" content="#050608">
+<meta name="author" content="Verdikt">
+<meta name="apple-mobile-web-app-title" content="Verdikt">
 <link rel="canonical" href="https://verdikt.finance/">
+<link rel="alternate" hreflang="es-AR" href="https://verdikt.finance/">
+<link rel="alternate" hreflang="es" href="https://verdikt.finance/">
+<link rel="alternate" hreflang="x-default" href="https://verdikt.finance/">
 <meta property="og:title" content="Verdikt — ¿Comprar, acumular o evitar?">
 <meta property="og:description" content="Un veredicto claro para cada cripto y CEDEAR: puntaje 0-100 y los porqués, sin humo.">
 <meta property="og:image" content="https://verdikt.finance/img/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Verdikt: un veredicto claro de 0 a 100 para cada cripto y CEDEAR.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://verdikt.finance/">
 <meta property="og:site_name" content="Verdikt">
@@ -19,19 +27,117 @@
 <meta name="twitter:title" content="Verdikt — ¿Comprar, acumular o evitar?">
 <meta name="twitter:description" content="Un veredicto claro para cada cripto y CEDEAR: puntaje 0-100 y los porqués, sin humo.">
 <meta name="twitter:image" content="https://verdikt.finance/img/og.png">
+<meta name="twitter:image:alt" content="Verdikt: un veredicto claro de 0 a 100 para cada cripto y CEDEAR.">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "name": "Verdikt",
-  "url": "https://app.verdikt.finance/",
-  "applicationCategory": "FinanceApplication",
-  "operatingSystem": "Web",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://verdikt.finance/#organization",
+      "name": "Verdikt",
+      "url": "https://verdikt.finance/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://verdikt.finance/img/logo.png",
+        "width": 512,
+        "height": 512
+      },
+      "description": "Verdikt da un veredicto claro para cada cripto y cada CEDEAR: un puntaje de 0 a 100 con las razones técnicas detrás, en castellano.",
+      "areaServed": "AR"
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://verdikt.finance/#website",
+      "name": "Verdikt",
+      "url": "https://verdikt.finance/",
+      "inLanguage": "es-AR",
+      "publisher": { "@id": "https://verdikt.finance/#organization" }
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://app.verdikt.finance/#app",
+      "name": "Verdikt",
+      "url": "https://app.verdikt.finance/",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web",
+      "browserRequirements": "Requiere un navegador con JavaScript.",
+      "inLanguage": "es-AR",
+      "isAccessibleForFree": true,
+      "screenshot": "https://verdikt.finance/img/home.png",
+      "publisher": { "@id": "https://verdikt.finance/#organization" },
+      "description": "Analiza cada cripto y cada CEDEAR y da un veredicto claro: un puntaje de 0 a 100 con las razones detrás. Gratis, sin registro.",
+      "featureList": [
+        "Veredicto de 0 a 100 por activo, con las razones explicadas",
+        "Más de 100 criptomonedas y CEDEARs",
+        "Precio del CEDEAR en pesos con ratio y dólar CCL del día",
+        "Gráfico de 6 meses con la media de 200 días",
+        "Movers del día y cambios de veredicto",
+        "Noticias de cripto, acciones y macro",
+        "Watchlist, alertas de precio y portafolio"
+      ],
+      "offers": [
+        { "@type": "Offer", "name": "Gratis", "price": "0", "priceCurrency": "ARS" },
+        { "@type": "Offer", "name": "Pro", "price": "12000", "priceCurrency": "ARS", "description": "30 días, sin renovación automática" }
+      ]
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
   "inLanguage": "es-AR",
-  "description": "Analiza cada cripto y cada CEDEAR y da un veredicto claro: un puntaje de 0 a 100 con las razones detrás. Gratis, sin registro.",
-  "offers": [
-    { "@type": "Offer", "name": "Gratis", "price": "0", "priceCurrency": "ARS" },
-    { "@type": "Offer", "name": "Pro", "price": "12000", "priceCurrency": "ARS" }
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "¿Qué es un CEDEAR y cómo lo analiza Verdikt?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Un CEDEAR (Certificado de Depósito Argentino) es un instrumento que te permite comprar acciones de empresas del exterior —como NVIDIA, Tesla o MercadoLibre— desde el mercado argentino y en pesos. Verdikt analiza el activo subyacente con indicadores técnicos y además te muestra el precio del CEDEAR en pesos, el ratio de conversión y el dólar CCL del día, para que no tengas que hacer las cuentas a mano."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Conviene comprar Bitcoin ahora?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Depende del momento técnico, y por eso Verdikt no te da una respuesta genérica: analiza Bitcoin con tendencia, medias móviles, RSI, MACD y volumen, y te devuelve un puntaje de 0 a 100 con un veredicto —de COMPRA a EVITAR— y las razones detrás. Así ves si las señales están a favor o en contra hoy, en vez de guiarte por el ruido. La decisión final siempre es tuya."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Cómo sé si conviene comprar un CEDEAR o una acción?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Verdikt cruza los principales indicadores de análisis técnico —tendencia de fondo, medias de 20, 50 y 200 días, RSI, MACD, volumen y niveles de soporte y resistencia— y los resume en un solo puntaje con su veredicto. Cada señal a favor y en contra queda explicada en castellano, para que entiendas por qué el veredicto es el que es y decidas con información, no con una corazonada."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Qué significa el puntaje de 0 a 100?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Es la síntesis de todas las señales técnicas en un solo número. A cada rango le corresponde una palabra: COMPRA (señales fuertes a favor), ACUMULAR (constructivo, entrar de a poco), NEUTRAL (sin ventaja clara), CAUTELA (debilidad técnica visible) y EVITAR (señales fuertes en contra). No es una promesa de rendimiento: es una lectura del momento técnico del activo."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Qué es el ratio de conversión y el dólar CCL?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "El ratio indica cuántos CEDEARs equivalen a una acción original (por ejemplo, 20 CEDEARs por 1 acción). El dólar CCL (Contado con Liquidación) es el tipo de cambio implícito que surge de operar esos activos. Verdikt usa ambos para mostrarte el precio del CEDEAR en pesos ya calculado, al lado del análisis, sin que tengas que buscarlos por separado."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Verdikt da recomendaciones de inversión?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Verdikt es una herramienta de análisis técnico con fines informativos y educativos: te muestra datos y un veredicto para que decidas mejor, pero no constituye asesoramiento financiero. Invertir en criptomonedas y acciones implica riesgo de pérdida del capital."
+      }
+    }
   ]
 }
 </script>
@@ -172,6 +278,27 @@
   .plan li::before { content: "+"; font-family: var(--mono); color: var(--accent); position: absolute; left: 0; }
   .plan li b { color: var(--text); font-weight: 600; }
   .plan .btn { text-align: center; }
+
+  /* ---- FAQ ---- */
+  .faq { display: grid; gap: 12px; max-width: 820px; }
+  .faq details {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 0 22px;
+  }
+  .faq details[open] { border-color: #2c3446; }
+  .faq summary {
+    list-style: none; cursor: pointer; padding: 20px 0;
+    font-size: 16.5px; font-weight: 600; color: var(--text);
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after {
+    content: "+"; font-family: var(--mono); font-size: 20px; color: var(--accent);
+    flex: none; transition: transform .18s;
+  }
+  .faq details[open] summary::after { content: "\2212"; }
+  .faq .answer { padding: 0 0 20px; font-size: 15px; color: var(--dim); }
+  .faq .answer b { color: var(--text); font-weight: 600; }
 
   /* ---- CTA final ---- */
   .cta-final {
@@ -374,6 +501,39 @@
           </ul>
           <a class="btn btn-primary" href="https://app.verdikt.finance/?upgrade=1">Empezar con Pro</a>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" style="padding-top: 0;">
+    <div class="wrap">
+      <div class="sec-title">Preguntas frecuentes</div>
+      <h2>Lo que la gente pregunta antes de empezar</h2>
+      <div class="faq">
+        <details>
+          <summary>¿Qué es un CEDEAR y cómo lo analiza Verdikt?</summary>
+          <div class="answer">Un <b>CEDEAR</b> (Certificado de Depósito Argentino) es un instrumento que te permite comprar acciones de empresas del exterior —como NVIDIA, Tesla o MercadoLibre— desde el mercado argentino y en pesos. Verdikt analiza el activo subyacente con indicadores técnicos y además te muestra el <b>precio del CEDEAR en pesos, el ratio de conversión y el dólar CCL del día</b>, para que no tengas que hacer las cuentas a mano.</div>
+        </details>
+        <details>
+          <summary>¿Conviene comprar Bitcoin ahora?</summary>
+          <div class="answer">Depende del momento técnico, y por eso Verdikt no te da una respuesta genérica: analiza Bitcoin con tendencia, medias móviles, RSI, MACD y volumen, y te devuelve un <b>puntaje de 0 a 100 con un veredicto —de COMPRA a EVITAR— y las razones detrás</b>. Así ves si las señales están a favor o en contra hoy, en vez de guiarte por el ruido. La decisión final siempre es tuya.</div>
+        </details>
+        <details>
+          <summary>¿Cómo sé si conviene comprar un CEDEAR o una acción?</summary>
+          <div class="answer">Verdikt cruza los principales indicadores de <b>análisis técnico</b> —tendencia de fondo, medias de 20, 50 y 200 días, RSI, MACD, volumen y niveles de soporte y resistencia— y los resume en un solo puntaje con su veredicto. Cada señal a favor y en contra queda explicada en castellano, para que entiendas <b>por qué</b> el veredicto es el que es y decidas con información, no con una corazonada.</div>
+        </details>
+        <details>
+          <summary>¿Qué significa el puntaje de 0 a 100?</summary>
+          <div class="answer">Es la síntesis de todas las señales técnicas en un solo número. A cada rango le corresponde una palabra: <b>COMPRA</b> (señales fuertes a favor), <b>ACUMULAR</b> (constructivo, entrar de a poco), <b>NEUTRAL</b> (sin ventaja clara), <b>CAUTELA</b> (debilidad técnica visible) y <b>EVITAR</b> (señales fuertes en contra). No es una promesa de rendimiento: es una lectura del momento técnico del activo.</div>
+        </details>
+        <details>
+          <summary>¿Qué es el ratio de conversión y el dólar CCL?</summary>
+          <div class="answer">El <b>ratio</b> indica cuántos CEDEARs equivalen a una acción original (por ejemplo, 20 CEDEARs por 1 acción). El <b>dólar CCL</b> (Contado con Liquidación) es el tipo de cambio implícito que surge de operar esos activos. Verdikt usa ambos para mostrarte el precio del CEDEAR en pesos ya calculado, al lado del análisis, sin que tengas que buscarlos por separado.</div>
+        </details>
+        <details>
+          <summary>¿Verdikt da recomendaciones de inversión?</summary>
+          <div class="answer">No. Verdikt es una <b>herramienta de análisis técnico con fines informativos y educativos</b>: te muestra datos y un veredicto para que decidas mejor, pero no constituye asesoramiento financiero. Invertir en criptomonedas y acciones implica riesgo de pérdida del capital.</div>
+        </details>
       </div>
     </div>
   </section>
