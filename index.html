@@ -556,35 +556,64 @@
 </footer>
 
 <script>
-  // Cinta de movers del día EN VIVO: variación % de acciones y cripto, tomada
-  // de la app. Si algo falla, queda el respaldo estático del HTML. El CORS del
-  // backend es abierto, así que la landing (otro dominio) puede pedirlo.
+  // Cinta EN VIVO de subas y bajas del día (acciones de Wall St + Argentina),
+  // tomada de la app. Se mezclan ganadoras y perdedoras a propósito para que
+  // siempre haya verdes y rojos (si solo tomáramos "los que más se movieron",
+  // un día de baja saldría todo rojo). Si algo falla, queda el respaldo
+  // estático del HTML. El CORS del backend es abierto, así que la landing
+  // (otro dominio) puede pedirlo.
   (function () {
     var track = document.getElementById("ticker");
     if (!track) return;
+    var API = "https://app.verdikt.finance/market/region/";
     function pct(n) {
-      var s = (n >= 0 ? "+" : "−") + Math.abs(n).toFixed(1) + "%";
-      return s.replace(".", ",");
+      return ((n >= 0 ? "+" : "−") + Math.abs(n).toFixed(1) + "%").replace(".", ",");
     }
     function esc(s) {
       return String(s).replace(/[&<>]/g, function (c) {
         return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c];
       });
     }
-    fetch("https://app.verdikt.finance/highlights")
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (d) {
+    function getRegion(r) {
+      return fetch(API + r).then(function (x) { return x.ok ? x.json() : null; })
+        .catch(function () { return null; });
+    }
+    function render(items) {
+      var one = items.map(function (it) {
+        var p = it.day_change_pct || 0;
+        return '<span><b>' + esc(it.symbol) + '</b> <b class="' +
+          (p >= 0 ? "t-up" : "t-dn") + '">' + pct(p) + "</b></span>";
+      }).join("");
+      // Repetimos la lista hasta que UNA vuelta supere el ancho de la pantalla:
+      // así el desplazamiento -50% siempre empalma sin dejar un hueco (la
+      // "cortada" que se veía con pocos items en monitores anchos).
+      track.innerHTML = one;
+      var shellW = (track.parentElement && track.parentElement.clientWidth) || window.innerWidth || 1200;
+      var reps = 1;
+      while (track.scrollWidth < shellW * 1.3 && reps < 20) {
+        reps++;
+        track.innerHTML = one.repeat(reps);
+      }
+      var unitW = track.scrollWidth;                 // ancho de una vuelta
+      track.innerHTML = track.innerHTML + track.innerHTML; // dos copias -> loop sin costura
+      track.style.animationDuration = Math.max(24, Math.round(unitW / 70)) + "s"; // ~70 px/s, velocidad pareja
+    }
+    Promise.all([getRegion("us"), getRegion("ar")]).then(function (res) {
+      var ups = [], downs = [], seen = {};
+      res.forEach(function (d) {
         if (!d) return;
-        var items = (d.stocks || []).concat(d.crypto || []);
-        if (!items.length) return;
-        var html = items.map(function (it) {
-          var p = it.day_change_pct || 0;
-          return '<span><b>' + esc(it.symbol) + '</b> <b class="' +
-            (p >= 0 ? "t-up" : "t-dn") + '">' + pct(p) + "</b></span>";
-        }).join("");
-        track.innerHTML = html + html; // dos copias: el loop translada -50%
-      })
-      .catch(function () { /* queda el respaldo estático */ });
+        (d.movers_up || []).forEach(function (x) { ups.push(x); });
+        (d.movers_down || []).forEach(function (x) { downs.push(x); });
+      });
+      // Intercalamos suba/baja para que los colores queden repartidos.
+      var items = [], n = Math.max(ups.length, downs.length);
+      for (var i = 0; i < n; i++) {
+        [ups[i], downs[i]].forEach(function (x) {
+          if (x && !seen[x.symbol]) { seen[x.symbol] = 1; items.push(x); }
+        });
+      }
+      if (items.length) render(items);
+    });
   })();
 </script>
 
