@@ -1,0 +1,88 @@
+# Posteo diario del Instagram de Verdikt, 100% automatico.
+#
+# Flujo: genera la imagen de "cambios de veredicto" con datos vivos -> la
+# commitea/pushea a este repo (para que tenga URL publica) -> la publica en el
+# feed de Instagram por la Graph API oficial. Si un dia no hubo cambios de
+# veredicto, no publica nada (no spamea un posteo vacio).
+#
+# Para que PUBLIQUE hacen falta dos secrets del repo (Settings -> Secrets and
+# variables -> Actions): IG_USER_ID e IG_ACCESS_TOKEN. Sin ellos genera y
+# commitea la imagen pero saltea el publish (ver SETUP-IG.md).
+name: Instagram diario de Verdikt
+
+on:
+  schedule:
+    - cron: "20 22 * * *" # 22:20 UTC = 19:20 ART, despues del snapshot (21:10) y sus cambios
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Probar sin publicar (dry-run)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write # para pushear la imagen generada
+
+concurrency:
+  group: ig-daily
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar Pillow
+        run: pip install pillow
+
+      - name: Generar el posteo del dia
+        run: python ig_daily.py generate
+
+      - name: ¿Hay algo para publicar?
+        id: check
+        run: |
+          if [ -f ig/media/latest_image.txt ]; then
+            echo "post=yes" >> "$GITHUB_OUTPUT"
+            echo "image=$(cat ig/media/latest_image.txt)" >> "$GITHUB_OUTPUT"
+          else
+            echo "post=no" >> "$GITHUB_OUTPUT"
+            echo "Sin cambios de veredicto hoy: no se publica."
+          fi
+
+      - name: ¿Estan los secrets de Instagram?
+        id: cfg
+        run: echo "ready=${{ secrets.IG_ACCESS_TOKEN != '' && secrets.IG_USER_ID != '' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Commitear la imagen (le da URL publica)
+        if: steps.check.outputs.post == 'yes'
+        run: |
+          git config user.name "verdikt-bot"
+          git config user.email "bot@verdikt.finance"
+          git add ig/media
+          git commit -m "IG: cambios de veredicto ($(date -u +%F))" || echo "nada que commitear"
+          git push
+
+      - name: Publicar en Instagram
+        if: steps.check.outputs.post == 'yes' && steps.cfg.outputs.ready == 'true'
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: |
+          SHA=$(git rev-parse HEAD)
+          URL="https://raw.githubusercontent.com/${{ github.repository }}/$SHA/${{ steps.check.outputs.image }}"
+          echo "Imagen publica: $URL"
+          sleep 10 # darle al CDN de GitHub un momento para servir esa SHA
+          DRY=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
+            DRY="--dry-run"
+          fi
+          python ig_daily.py publish --image-url "$URL" $DRY
+
+      - name: Aviso si falta configurar
+        if: steps.check.outputs.post == 'yes' && steps.cfg.outputs.ready != 'true'
+        run: echo "::notice::La imagen se genero y commiteo, pero faltan los secrets IG_USER_ID / IG_ACCESS_TOKEN para publicar. Ver SETUP-IG.md."
