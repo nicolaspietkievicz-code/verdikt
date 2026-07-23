@@ -1,20 +1,8 @@
-# Keep-alive de la app (app.verdikt.finance, Render free tier): el servidor se
-# duerme a los ~15 min sin tráfico y el próximo visitante espera 30-50 s (o ve
-# la pantalla en blanco si se le corta antes). Vive en ESTE repo público porque
-# los minutos de Actions acá son gratis e ilimitados; en el repo privado de la
-# app consumiría toda la cuota del plan free.
-#
-# POR QUÉ EL LOOP ADENTRO (23/07/2026): estaba con `cron: */7 * * * *` y GitHub
-# NO lo respetaba ni de cerca — los disparos reales venían cada 1 a 3,6 horas
-# (medido sobre el historial de Actions). Los schedules de Actions son "best
-# effort" y los intervalos cortos se saltean en masa cuando la cola está
-# cargada. Resultado: la instancia dormía casi todo el día. Ahora cada corrida
-# se queda ~55 min pingeando sola cada 5 min, así un solo disparo por hora
-# cubre la hora entera y el schedule tardío duele mucho menos.
-#
-# Esto ES un parche: si el disparo se atrasa 2 h, igual quedan huecos. La
-# solución de verdad es un monitor externo (UptimeRobot cada 5 min) — ver
-# KEEPALIVE.md en el repo de la app.
+# Keep-alive de la app (app.verdikt.finance, Render free tier): un ping cada
+# 7 minutos evita que el servidor se duerma (se apaga a los ~15 min sin
+# tráfico y el próximo visitante espera 30-50 s). Vive en ESTE repo público
+# porque los minutos de Actions acá son gratis e ilimitados; en el repo
+# privado de la app consumiría toda la cuota del plan free.
 #
 # OJO: GitHub desactiva los schedules si el repo no tiene actividad por 60
 # días — si la landing pasa mucho tiempo sin commits, entrar a Actions y
@@ -23,31 +11,16 @@ name: Keep-alive de la app
 
 on:
   schedule:
-    - cron: "5 * * * *"
+    - cron: "*/7 * * * *"
   workflow_dispatch:
-
-# Si un disparo atrasado se superpone con el anterior, que convivan: pingear
-# de más es inofensivo, quedarse corto no.
-concurrency:
-  group: keepalive
-  cancel-in-progress: false
 
 jobs:
   ping:
     runs-on: ubuntu-latest
-    timeout-minutes: 70
     steps:
-      - name: Pingear /health cada 5 min durante ~55 min
+      - name: Ping /health
         run: |
-          ok=0; fail=0
-          for i in $(seq 1 12); do
-            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 90 \
-              "https://app.verdikt.finance/health" || echo "000")
-            echo "$(date -u +%H:%M:%S) ping $i/12 -> $code"
-            if [ "$code" = "200" ]; then ok=$((ok+1)); else fail=$((fail+1)); fi
-            [ "$i" -lt 12 ] && sleep 280
-          done
-          echo "ok=$ok fail=$fail"
-          # Falla el job solo si NINGÚN ping entró: un 502 suelto durante un
-          # deploy no vale un mail de alerta.
-          test "$ok" -gt 0
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 90 \
+            "https://app.verdikt.finance/health")
+          echo "respuesta: $code"
+          test "$code" = "200"
