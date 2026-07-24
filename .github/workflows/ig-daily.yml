@@ -6,10 +6,15 @@
 #     commitea/pushea a este repo (para que tenga URL publica) y se publica por
 #     la Graph API oficial. Sin cambios, no sale nada (no spamea un post vacio).
 #
-#   placa evergreen -> TODOS los dias, haya cambios o no: es lo que le da ritmo
-#     a la cuenta. Su PNG ya vive commiteado en ig/placas/, asi que aca solo se
-#     elige cual toca en la rotacion y se publica. Los dias con cambios salen
-#     los dos posteos.
+#   reel del veredicto -> TODOS los dias, un activo distinto por dia siguiendo la
+#     rotacion de ig/reel/rotacion.py (32 activos, acciones y criptos alternadas).
+#     Se renderiza en el runner: 600 frames de una escena dibujada, sin capturas
+#     de la app, con los datos del endpoint del producto. Es el posteo de base.
+#
+#   placa evergreen -> RESPALDO del reel. Si el render falla (endpoint caido,
+#     Playwright, lo que sea) sale la placa que toca, para que el dia no quede
+#     sin nada. Si el reel salio bien, la placa no se publica: dos posteos del
+#     mismo tipo el mismo dia no suman.
 #
 #   reel -> solo a pedido, pasando la ruta del MP4 al disparar el workflow. No
 #     tiene schedule porque el render corre local y se revisa a mano antes de
@@ -57,16 +62,20 @@ jobs:
       - name: Instalar Pillow
         run: pip install pillow
 
+      # Para el reel: Chromium renderiza la escena y ffmpeg (ya viene en el
+      # runner) la encodea. --with-deps trae las librerias del sistema que
+      # Chromium necesita en ubuntu headless.
+      - name: Instalar Playwright
+        if: ${{ !cancelled() && inputs.reel == '' }}
+        run: npm install --no-save playwright && npx playwright install --with-deps chromium
+
       - name: Generar el posteo del dia
         run: python ig_daily.py generate
 
-      # La placa evergreen sale TODOS los dias, haya o no cambios de veredicto:
-      # es lo que le da ritmo a la cuenta. Las 40 ya estan dibujadas en
-      # ig/placas/, aca solo se elige cual toca segun la rotacion.
-      #
-      # Corre incluso si el paso anterior fallo (backend caido, por ejemplo):
-      # elegir una placa no depende de datos del dia, y justo un dia sin datos
-      # es cuando mas hace falta que la cuenta postee algo.
+      # Se elige la placa aunque probablemente no se use: es el respaldo por si
+      # el reel no sale, y elegirla es instantaneo. Corre incluso si el paso
+      # anterior fallo (backend caido): no depende de datos del dia, y justo un
+      # dia sin datos es cuando mas hace falta tener con que postear.
       - name: Elegir la placa del dia
         if: ${{ !cancelled() && inputs.reel == '' }}
         run: python ig_daily.py placa
@@ -135,11 +144,65 @@ jobs:
             git push
           fi
 
-      # Va DESPUES de los cambios y sin depender de ellos: la placa es el posteo
-      # de base. Su PNG ya esta en el repo desde hace commits, asi que no hay
-      # nada que pushear ni que esperar al CDN antes de publicarla.
+      # ── Reel del dia ──────────────────────────────────────────────────────
+      - name: Elegir el activo del reel
+        id: asset
+        if: ${{ !cancelled() && inputs.reel == '' }}
+        run: |
+          python ig_daily.py reel
+          echo "asset=$(cat ig/media/reel_asset.txt)" >> "$GITHUB_OUTPUT"
+
+      # continue-on-error a proposito: si el render falla, el dia no se pierde
+      # (mas abajo sale la placa de respaldo) y la rotacion no avanza, asi que
+      # manana se reintenta este mismo activo.
+      - name: Renderizar el reel
+        id: render
+        if: ${{ !cancelled() && inputs.reel == '' }}
+        continue-on-error: true
+        run: |
+          ASSET="${{ steps.asset.outputs.asset }}"
+          python make-ig-reel.py "${ASSET#*:}" "${ASSET%%:*}"
+
+      - name: Commitear el reel (le da URL publica)
+        if: ${{ !cancelled() && inputs.reel == '' && steps.render.outcome == 'success' }}
+        run: |
+          git config user.name "verdikt-bot"
+          git config user.email "bot@verdikt.finance"
+          git add ig/reels
+          git commit -m "IG: reel del dia ($(date -u +%F))" || echo "nada que commitear"
+          git push
+
+      - name: Publicar el reel
+        id: pubreel
+        if: ${{ !cancelled() && inputs.reel == '' && steps.render.outcome == 'success' && steps.cfg.outputs.ready == 'true' }}
+        continue-on-error: true
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: |
+          VIDEO=$(cat ig/media/reel_video.txt)
+          URL="https://raw.githubusercontent.com/${{ github.repository }}/$(git rev-parse HEAD)/$VIDEO"
+          echo "Video publico: $URL"
+          curl -sI "$URL" | head -3
+          python ig_daily.py publish-reel --video-url "$URL" ${{ steps.mode.outputs.dry }}
+
+      # La rotacion avanza solo si Instagram confirmo (lo decide publish-reel).
+      - name: Commitear la rotacion del reel
+        if: ${{ !cancelled() && inputs.reel == '' && steps.pubreel.outcome == 'success' }}
+        run: |
+          if [ -f ig/media/last_reel.txt ]; then
+            git config user.name "verdikt-bot"
+            git config user.email "bot@verdikt.finance"
+            git add ig/media/last_reel.txt
+            git commit -m "IG: reel publicado ($(cat ig/media/last_reel.txt))" || echo "sin cambios"
+            git push
+          fi
+
+      # ── Placa: respaldo del reel ──────────────────────────────────────────
+      # Solo si el reel NO se publico. Su PNG ya esta en el repo desde hace
+      # commits, asi que no hay nada que pushear ni esperar al CDN.
       - name: Publicar la placa del dia
-        if: ${{ !cancelled() && inputs.reel == '' && steps.cfg.outputs.ready == 'true' }}
+        if: ${{ !cancelled() && inputs.reel == '' && steps.pubreel.outcome != 'success' && steps.cfg.outputs.ready == 'true' }}
         env:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
@@ -156,7 +219,7 @@ jobs:
       # Igual que el marcador de los cambios: sin este commit la rotacion no
       # avanza y manana volveria a tocar la misma placa.
       - name: Commitear la rotacion de la placa
-        if: ${{ !cancelled() && inputs.reel == '' && steps.cfg.outputs.ready == 'true' }}
+        if: ${{ !cancelled() && inputs.reel == '' && steps.pubreel.outcome != 'success' && steps.cfg.outputs.ready == 'true' }}
         run: |
           if [ -f ig/media/last_placa.txt ]; then
             git config user.name "verdikt-bot"

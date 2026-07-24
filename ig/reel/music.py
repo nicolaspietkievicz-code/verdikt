@@ -11,8 +11,11 @@ Escrita contra las marcas de la escena, no al revés:
  17.20  cierre de marca
 """
 import array
+import json
 import math
+import os
 import random
+import re
 import wave
 
 SR = 44100
@@ -21,10 +24,18 @@ N = int(SR * DUR)
 BPM = 112.0
 BEAT = 60.0 / BPM
 
-# Marcas de la escena (tienen que coincidir con scene2.html)
+# Marcas de la escena (tienen que coincidir con scene.html)
 A2, A3, A4, A5, A6 = 2.10, 5.60, 11.00, 13.70, 17.20
-T_FILA, FILAS = 0.80, 6
-T_CIERRA = A3 + 0.35 + FILAS * T_FILA          # 10.75
+T_FILA = 0.80
+
+# Cuantas razones entran define CUANDO cierra el conteo, y el impacto tiene que
+# caer ahi. Se lee de data.js en vez de fijarlo: los activos traen entre 3 y 6
+# filas, y con un 6 hardcodeado el golpe caia despues del numero en casi todos.
+_dj = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.js")
+with open(_dj, encoding="utf-8") as _f:
+    _d = json.loads(re.sub(r"^window\.DATA\s*=\s*|;\s*$", "", _f.read().strip()))
+FILAS = len(_d["razones"])
+T_CIERRA = A3 + 0.35 + FILAS * T_FILA
 
 buf = [0.0] * N
 random.seed(11)

@@ -57,6 +57,17 @@ _placas_spec = importlib.util.spec_from_file_location("make_ig_placas", _placas_
 placas = importlib.util.module_from_spec(_placas_spec)
 _placas_spec.loader.exec_module(placas)
 
+# Rotacion del reel diario. Igual que la placa: lista fija + marcador, para que
+# no dependa de la fecha ni se repita, y si un dia falla al otro siga donde iba.
+_rot_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ig", "reel", "rotacion.py")
+_rot_spec = importlib.util.spec_from_file_location("rotacion", _rot_path)
+rotacion = importlib.util.module_from_spec(_rot_spec)
+_rot_spec.loader.exec_module(rotacion)
+
+REEL_LAST_FILE = os.path.join(MEDIA_DIR, "last_reel.txt")
+REEL_ASSET_FILE = os.path.join(MEDIA_DIR, "reel_asset.txt")
+REEL_VIDEO_FILE = os.path.join(MEDIA_DIR, "reel_video.txt")
+
 VERDICT_ES = {
     "COMPRA": "COMPRA", "ACUMULAR": "ACUMULAR", "NEUTRAL": "NEUTRAL",
     "CAUTELA": "CAUTELA", "EVITAR": "EVITAR",
@@ -173,6 +184,43 @@ def cmd_placa():
     return 0
 
 
+def cmd_reel():
+    """Elige el activo del reel de hoy y deja el puntero. No genera el video:
+    eso lo hace make-ig-reel.py, que tarda minutos y necesita Playwright."""
+    clase, sym = rotacion.siguiente(_read(REEL_LAST_FILE))
+    os.makedirs(MEDIA_DIR, exist_ok=True)
+    with open(REEL_ASSET_FILE, "w", encoding="utf-8") as f:
+        f.write(rotacion.clave(clase, sym))
+    print(f"Reel de hoy: {sym} ({clase})")
+    return 0
+
+
+def cmd_publish_reel(video_url: str, dry_run: bool):
+    """Publica el reel ya generado y recien entonces avanza la rotacion."""
+    ruta = _read(REEL_VIDEO_FILE)
+    if not ruta:
+        print("No hay reel para publicar.")
+        return 0
+    cap_path = os.path.splitext(ruta)[0] + ".txt"
+    if not os.path.exists(cap_path):
+        print(f"Falta el caption {cap_path}: no se publica.")
+        return 0
+    with open(cap_path, encoding="utf-8") as f:
+        caption = f.read()
+
+    mid = ig_publish.publish_reel(video_url, caption, dry_run=dry_run)
+    print("reel publicado:", mid)
+    # La rotacion avanza SOLO si Instagram confirmo: si falla, manana se
+    # reintenta el mismo activo en vez de saltearlo.
+    if not dry_run:
+        asset = _read(REEL_ASSET_FILE)
+        if asset:
+            with open(REEL_LAST_FILE, "w", encoding="utf-8") as f:
+                f.write(asset)
+            print("rotacion avanzada a:", asset)
+    return 0
+
+
 def cmd_publish_placa(image_url: str, dry_run: bool):
     caption = _read(PLACA_CAP_FILE)
     if not caption:
@@ -223,20 +271,28 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("generate")
     sub.add_parser("placa")
+    sub.add_parser("reel")
     for nombre in ("publish", "publish-placa"):
         p = sub.add_parser(nombre)
         p.add_argument("--image-url", required=True)
         p.add_argument("--dry-run", action="store_true")
+    p = sub.add_parser("publish-reel")
+    p.add_argument("--video-url", required=True)
+    p.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
 
     if a.cmd == "generate":
         sys.exit(cmd_generate())
     if a.cmd == "placa":
         sys.exit(cmd_placa())
+    if a.cmd == "reel":
+        sys.exit(cmd_reel())
     if a.cmd == "publish":
         sys.exit(cmd_publish(a.image_url, a.dry_run))
     if a.cmd == "publish-placa":
         sys.exit(cmd_publish_placa(a.image_url, a.dry_run))
+    if a.cmd == "publish-reel":
+        sys.exit(cmd_publish_reel(a.video_url, a.dry_run))
 
 
 if __name__ == "__main__":

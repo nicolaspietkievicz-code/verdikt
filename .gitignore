@@ -11,3 +11,6 @@ ig/reel/track.wav
 ig/reel/frames/
 ig/reel/verdict.json
 node_modules/
+
+ig/media/reel_asset.txt
+ig/media/reel_video.txt

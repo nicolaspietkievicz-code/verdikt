@@ -240,6 +240,8 @@ el('ticker').textContent = D.symbol;
 el('name').textContent = D.name;
 el('price').textContent = '$' + nf(D.price) + ' ' + D.currency;
 el('chg').textContent = (D.change_1m >= 0 ? '+' : '') + nf(D.change_1m) + '% en el último mes';
+// Una baja no puede salir en verde: la mitad de la rotacion viene en negativo.
+el('chg').style.color = D.change_1m >= 0 ? 'var(--green)' : 'var(--red)';
 el('legal').textContent = 'Información educativa, no es asesoramiento financiero.';
 
 el('pClose').setAttribute('points', D.chart.closes);
@@ -272,8 +274,19 @@ D.razones.forEach(r => $rows.appendChild(fila(r)));
 D.contras.forEach(r => $why.appendChild(fila(r)));
 const FR = [...$rows.children], WR = [...$why.children];
 
-el('tally').innerHTML =
-  `<b>${D.conteo.positivo} a favor</b> · ${D.conteo.neutral} neutras · <i>${D.conteo.negativo} en contra</i>`;
+// El stack se centra en la franja libre segun cuantas razones haya: los activos
+// van de 4 a 9 razones, y con top fijo los de pocas quedaban pegados arriba con
+// media pantalla vacia. Se mide una vez, con todas las filas ya en el DOM.
+const BANDA = [880, 1740];
+const ROWS_TOP = Math.round(BANDA[0] + Math.max(0, (BANDA[1] - BANDA[0] - $rows.offsetHeight) / 2));
+const WHY_TOP = Math.round(700 + Math.max(0, (1160 - 700 - $why.offsetHeight) / 2));
+
+// Solo las categorias con algo: "0 neutras" pasa seguido y queda torpe.
+el('tally').innerHTML = [
+  D.conteo.positivo ? `<b>${D.conteo.positivo} a favor</b>` : '',
+  D.conteo.neutral  ? `${D.conteo.neutral} neutra${D.conteo.neutral > 1 ? 's' : ''}` : '',
+  D.conteo.negativo ? `<i>${D.conteo.negativo} en contra</i>` : '',
+].filter(Boolean).join(' · ');
 el('verdict').textContent = D.verdict;
 el('riskBox').querySelector('.v').textContent = D.risk;
 
@@ -374,7 +387,7 @@ function seek(t) {
 
   // filas: entran de a una, desde la izquierda, y se retiran ANTES de que
   // aparezca el veredicto: si no, "ACUMULAR" cae escrito sobre las razones.
-  el('rows').style.top = '900px';
+  el('rows').style.top = ROWS_TOP + 'px';
   const rFuera = u(A4, A4 + .5, t);
   FR.forEach((d, i) => {
     const t0 = A3 + .35 + i * T_FILA;
@@ -414,7 +427,7 @@ function seek(t) {
   el('whyT').innerHTML = `¿Por qué no <span>100</span>?`;
   el('whyT').style.opacity = (wIn * (1 - wFuera)).toFixed(3);
   el('whyT').style.top = lerp(520, 470, wIn).toFixed(1) + 'px';
-  el('whyRows').style.top = '660px';
+  el('whyRows').style.top = WHY_TOP + 'px';
   WR.forEach((d, i) => {
     const t0 = A5 + .45 + i * .55;
     const e = eo3(u(t0, t0 + .45, t));
