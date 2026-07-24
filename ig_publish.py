@@ -53,24 +53,55 @@ def _get(path: str, params: dict) -> dict:
         raise PublishError(f"HTTP {e.code} en {path}: {body}")
 
 
-def publish(image_url: str, caption: str, *, user_id=None, token=None, dry_run=False) -> str:
-    """Publica una imagen en el feed. Devuelve el id del posteo (o 'dry-run')."""
+def _creds(user_id, token):
     user_id = user_id or os.environ.get("IG_USER_ID")
     token = token or os.environ.get("IG_ACCESS_TOKEN")
-
-    if dry_run:
-        head = caption.strip().splitlines()[0] if caption.strip() else ""
-        print("[dry-run] NO se publica. Se enviaria:")
-        print("  image_url :", image_url)
-        print("  caption   :", head, f"({len(caption)} chars)")
-        print("  IG_USER_ID:", "seteado" if user_id else "FALTA")
-        print("  token     :", "seteado" if token else "FALTA")
-        return "dry-run"
-
     if not user_id or not token:
         raise PublishError("Falta IG_USER_ID o IG_ACCESS_TOKEN en el entorno.")
+    return user_id, token
 
-    # 1) contenedor
+
+def _aviso_dry(kind: str, url: str, caption: str, user_id, token) -> str:
+    head = caption.strip().splitlines()[0] if caption.strip() else ""
+    print("[dry-run] NO se publica. Se enviaria:")
+    print(f"  {kind:10}:", url)
+    print("  caption   :", head, f"({len(caption)} chars)")
+    print("  IG_USER_ID:", "seteado" if (user_id or os.environ.get("IG_USER_ID")) else "FALTA")
+    print("  token     :", "seteado" if (token or os.environ.get("IG_ACCESS_TOKEN")) else "FALTA")
+    return "dry-run"
+
+
+def _esperar(cid: str, token: str, intentos: int, espera: float) -> None:
+    """Espera a que el contenedor quede FINISHED. El video tarda mucho mas que
+    la imagen: Instagram lo baja, lo transcodifica y recien ahi habilita el
+    publish, asi que se le da bastante mas margen."""
+    for i in range(intentos):
+        st = _get(cid, {"fields": "status_code,status", "access_token": token})
+        code = st.get("status_code")
+        if code == "FINISHED":
+            return
+        if code == "ERROR":
+            raise PublishError(f"El contenedor quedo en ERROR: {st}")
+        if i and i % 5 == 0:
+            print(f"  ...procesando ({code}), {int(i * espera)}s")
+        time.sleep(espera)
+    raise PublishError("El contenedor nunca llego a FINISHED (timeout).")
+
+
+def _publicar(user_id: str, token: str, cid: str) -> str:
+    pub = _post(f"{user_id}/media_publish", {"creation_id": cid, "access_token": token})
+    mid = pub.get("id")
+    if not mid:
+        raise PublishError(f"No se publico: {pub}")
+    return mid
+
+
+def publish(image_url: str, caption: str, *, user_id=None, token=None, dry_run=False) -> str:
+    """Publica una imagen en el feed. Devuelve el id del posteo (o 'dry-run')."""
+    if dry_run:
+        return _aviso_dry("image_url", image_url, caption, user_id, token)
+    user_id, token = _creds(user_id, token)
+
     cont = _post(f"{user_id}/media", {
         "image_url": image_url, "caption": caption, "access_token": token,
     })
@@ -78,31 +109,45 @@ def publish(image_url: str, caption: str, *, user_id=None, token=None, dry_run=F
     if not cid:
         raise PublishError(f"No se creo el contenedor: {cont}")
 
-    # 2) esperar a que Instagram baje y valide la imagen (FINISHED)
-    for _ in range(25):
-        st = _get(cid, {"fields": "status_code", "access_token": token})
-        code = st.get("status_code")
-        if code == "FINISHED":
-            break
-        if code == "ERROR":
-            raise PublishError(f"El contenedor quedo en ERROR: {st}")
-        time.sleep(3)
-    else:
-        raise PublishError("El contenedor nunca llego a FINISHED (timeout).")
+    _esperar(cid, token, intentos=25, espera=3)
+    return _publicar(user_id, token, cid)
 
-    # 3) publicar
-    pub = _post(f"{user_id}/media_publish", {
-        "creation_id": cid, "access_token": token,
+
+def publish_reel(video_url: str, caption: str, *, user_id=None, token=None,
+                 dry_run=False, share_to_feed=True) -> str:
+    """Publica un REEL (video vertical). Mismo flujo de dos pasos que la imagen,
+    con dos diferencias: el contenedor se crea con media_type=REELS + video_url,
+    y hay que esperarle mucho mas al transcode.
+
+    share_to_feed=True hace que ademas aparezca en la grilla del perfil, no solo
+    en la pestaña de reels: si no, el perfil se ve vacio para quien lo visita."""
+    if dry_run:
+        return _aviso_dry("video_url", video_url, caption, user_id, token)
+    user_id, token = _creds(user_id, token)
+
+    cont = _post(f"{user_id}/media", {
+        "media_type": "REELS",
+        "video_url": video_url,
+        "caption": caption,
+        "share_to_feed": "true" if share_to_feed else "false",
+        "access_token": token,
     })
-    mid = pub.get("id")
-    if not mid:
-        raise PublishError(f"No se publico: {pub}")
-    return mid
+    cid = cont.get("id")
+    if not cid:
+        raise PublishError(f"No se creo el contenedor del reel: {cont}")
+    print("contenedor:", cid)
+
+    # 5 min de margen: un MP4 de pocos MB suele estar listo en menos de uno,
+    # pero si Instagram se demora no queremos perder el posteo por impaciencia.
+    _esperar(cid, token, intentos=60, espera=5)
+    return _publicar(user_id, token, cid)
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--image-url", required=True)
+    m = ap.add_mutually_exclusive_group(required=True)
+    m.add_argument("--image-url")
+    m.add_argument("--video-url", help="publica como REEL")
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--caption")
     g.add_argument("--caption-file")
@@ -114,7 +159,10 @@ def main():
         with open(a.caption_file, encoding="utf-8") as f:
             caption = f.read()
 
-    mid = publish(a.image_url, caption, dry_run=a.dry_run)
+    if a.video_url:
+        mid = publish_reel(a.video_url, caption, dry_run=a.dry_run)
+    else:
+        mid = publish(a.image_url, caption, dry_run=a.dry_run)
     print("publicado:", mid)
 
 

@@ -1,0 +1,85 @@
+# Publica un REEL ya renderizado que vive en el repo.
+#
+# Va aparte del posteo diario a proposito: los reels todavia se producen y se
+# revisan a mano (el render corre local), asi que esto no tiene schedule. Se
+# dispara cuando hay un video aprobado para subir.
+#
+# El MP4 tiene que estar COMMITEADO: Instagram no recibe bytes, baja el video de
+# una URL publica https, y la que usamos es la de raw.githubusercontent en la SHA
+# de la corrida.
+#
+# Igual que el diario, necesita los secrets IG_USER_ID e IG_ACCESS_TOKEN.
+name: Publicar un reel en Instagram
+
+on:
+  workflow_dispatch:
+    inputs:
+      video:
+        description: "Ruta del MP4 en el repo"
+        required: true
+        default: "ig/reels/aapl-2026-07-24.mp4"
+      caption:
+        description: "Ruta del caption (.txt). Si se omite, el mismo nombre del video"
+        required: false
+        default: ""
+      dry_run:
+        description: "Probar sin publicar (dry-run)"
+        type: boolean
+        default: true
+
+concurrency:
+  group: ig-reel
+  cancel-in-progress: false
+
+jobs:
+  reel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Se valida ANTES de hablar con Instagram: un 404 en la URL publica deja el
+      # contenedor en ERROR y el mensaje de la Graph API no explica por que.
+      - name: Revisar el video y el caption
+        id: files
+        run: |
+          VIDEO="${{ inputs.video }}"
+          CAP="${{ inputs.caption }}"
+          [ -n "$CAP" ] || CAP="${VIDEO%.mp4}.txt"
+          test -f "$VIDEO" || { echo "::error::No existe $VIDEO en el repo"; exit 1; }
+          test -f "$CAP"   || { echo "::error::No existe el caption $CAP"; exit 1; }
+          echo "video=$VIDEO" >> "$GITHUB_OUTPUT"
+          echo "caption=$CAP" >> "$GITHUB_OUTPUT"
+          python - "$VIDEO" <<'PY'
+          import subprocess, sys
+          # Instagram pide 9:16 y H.264/AAC; si algo de eso falla, mejor enterarse aca.
+          out = subprocess.run(["ffprobe", "-v", "error", "-show_entries",
+                                "stream=codec_name,width,height:format=duration,size",
+                                "-of", "default=nw=1", sys.argv[1]],
+                               capture_output=True, text=True).stdout
+          print(out)
+          PY
+
+      - name: ¿Estan los secrets de Instagram?
+        id: cfg
+        run: echo "ready=${{ secrets.IG_ACCESS_TOKEN != '' && secrets.IG_USER_ID != '' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Publicar el reel
+        if: steps.cfg.outputs.ready == 'true'
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: |
+          URL="https://raw.githubusercontent.com/${{ github.repository }}/$(git rev-parse HEAD)/${{ steps.files.outputs.video }}"
+          echo "Video publico: $URL"
+          curl -sI "$URL" | head -3   # que se vea en el log si el CDN no lo sirve todavia
+          DRY=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then DRY="--dry-run"; fi
+          python ig_publish.py --video-url "$URL" --caption-file "${{ steps.files.outputs.caption }}" $DRY
+
+      - name: Aviso si falta configurar
+        if: steps.cfg.outputs.ready != 'true'
+        run: echo "::notice::Faltan los secrets IG_USER_ID / IG_ACCESS_TOKEN. Ver SETUP-IG.md."
