@@ -83,6 +83,17 @@ jobs:
           fi
           python ig_daily.py publish --image-url "$URL" $DRY
 
+      # El marcador de "ultima fecha publicada" solo sirve si sobrevive a la
+      # corrida: sin este commit, manana el repo no sabria que ya se posteo.
+      - name: Commitear el marcador de publicado
+        if: steps.check.outputs.post == 'yes' && steps.cfg.outputs.ready == 'true'
+        run: |
+          if [ -f ig/media/last_published.txt ]; then
+            git add ig/media/last_published.txt
+            git commit -m "IG: marca publicado ($(cat ig/media/last_published.txt))" || echo "sin cambios"
+            git push
+          fi
+
       - name: Aviso si falta configurar
         if: steps.check.outputs.post == 'yes' && steps.cfg.outputs.ready != 'true'
         run: echo "::notice::La imagen se genero y commiteo, pero faltan los secrets IG_USER_ID / IG_ACCESS_TOKEN para publicar. Ver SETUP-IG.md."

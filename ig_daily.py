@@ -30,6 +30,13 @@ _spec.loader.exec_module(gen)
 MEDIA_DIR = "ig/media"
 KEEP = 14  # cuantas imagenes viejas conservar (para no inflar el repo)
 
+# Marcador de la ULTIMA fecha de datos ya publicada. Sin esto, si el snapshot
+# del backend falla o se atrasa, el workflow encuentra los cambios del dia
+# anterior y los vuelve a postear identicos. Tambien cubre el caso de disparar
+# el workflow a mano dos veces el mismo dia.
+LAST_PUB_FILE = os.path.join(MEDIA_DIR, "last_published.txt")
+DATE_FILE = os.path.join(MEDIA_DIR, "latest_date.txt")
+
 VERDICT_ES = {
     "COMPRA": "COMPRA", "ACUMULAR": "ACUMULAR", "NEUTRAL": "NEUTRAL",
     "CAUTELA": "CAUTELA", "EVITAR": "EVITAR",
@@ -67,6 +74,21 @@ def build_caption(data: dict) -> str:
     return "\n".join(lines)
 
 
+def _read(path: str) -> str:
+    try:
+        with open(path, encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+def _clear_pointers():
+    for f in ("latest_image.txt", "latest_caption.txt", "latest_date.txt"):
+        p = os.path.join(MEDIA_DIR, f)
+        if os.path.exists(p):
+            os.remove(p)
+
+
 def _prune():
     old = sorted(glob.glob(os.path.join(MEDIA_DIR, "cambios-*.png")))
     for p in old[:-KEEP]:
@@ -82,14 +104,19 @@ def cmd_generate():
     if not items:
         print("Sin cambios de veredicto hoy: no se genera ni se publica.")
         # Aseguramos que no queden punteros viejos de una corrida anterior.
-        for f in ("latest_image.txt", "latest_caption.txt"):
-            p = os.path.join(MEDIA_DIR, f)
-            if os.path.exists(p):
-                os.remove(p)
+        _clear_pointers()
+        return 0
+
+    dd = data.get("date") or ""
+    # El backend devuelve el ULTIMO snapshot disponible, no necesariamente el
+    # de hoy: si el snapshot de las 21:10 UTC fallo o se atraso, devuelve el de
+    # ayer. Republicarlo seria un posteo duplicado, con la fecha vieja.
+    if dd and dd == _read(LAST_PUB_FILE):
+        print(f"Los cambios del {dd} ya se publicaron: no se vuelve a postear.")
+        _clear_pointers()
         return 0
 
     os.makedirs(MEDIA_DIR, exist_ok=True)
-    dd = data.get("date") or ""
     stamp = dd if len(dd) == 10 else "hoy"
     img_path = os.path.join(MEDIA_DIR, f"cambios-{stamp}.png")
     gen.generate(out_path=img_path, data=data)
@@ -99,6 +126,8 @@ def cmd_generate():
         f.write(img_path.replace("\\", "/"))
     with open(os.path.join(MEDIA_DIR, "latest_caption.txt"), "w", encoding="utf-8") as f:
         f.write(cap)
+    with open(DATE_FILE, "w", encoding="utf-8") as f:
+        f.write(dd)
     _prune()
     print("Imagen:", img_path)
     print("Caption:\n" + cap)
@@ -114,6 +143,15 @@ def cmd_publish(image_url: str, dry_run: bool):
         caption = f.read()
     mid = ig_publish.publish(image_url, caption, dry_run=dry_run)
     print("publicado:", mid)
+    # Recien despues de que Instagram confirmo, se anota la fecha publicada.
+    # En dry-run NO se anota: si no, la corrida real de esa misma noche se
+    # saltearia el posteo creyendo que ya salio.
+    if not dry_run:
+        dd = _read(DATE_FILE)
+        if dd:
+            with open(LAST_PUB_FILE, "w", encoding="utf-8") as f:
+                f.write(dd)
+            print("marcado como publicado:", dd)
     return 0
 
 
