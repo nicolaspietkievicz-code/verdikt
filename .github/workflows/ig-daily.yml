@@ -11,6 +11,13 @@
 #     elige cual toca en la rotacion y se publica. Los dias con cambios salen
 #     los dos posteos.
 #
+#   reel -> solo a pedido, pasando la ruta del MP4 al disparar el workflow. No
+#     tiene schedule porque el render corre local y se revisa a mano antes de
+#     subirlo. Cuando se pide un reel NO sale la placa: es un posteo puntual, no
+#     un dia mas de la rotacion. (Vive aca y no en un workflow propio porque
+#     workflow_dispatch solo existe si el archivo esta en la rama default: uno
+#     nuevo no se podria disparar hasta mergearlo, ni probar antes.)
+#
 # Para que PUBLIQUE hacen falta dos secrets del repo (Settings -> Secrets and
 # variables -> Actions): IG_USER_ID e IG_ACCESS_TOKEN. Sin ellos genera y
 # commitea la imagen pero saltea el publish (ver SETUP-IG.md).
@@ -25,6 +32,10 @@ on:
         description: "Probar sin publicar (dry-run)"
         type: boolean
         default: true
+      reel:
+        description: "Ruta de un MP4 del repo para publicar como reel (vacio = no publica reel)"
+        required: false
+        default: ""
 
 permissions:
   contents: write # para pushear la imagen generada
@@ -57,7 +68,7 @@ jobs:
       # elegir una placa no depende de datos del dia, y justo un dia sin datos
       # es cuando mas hace falta que la cuenta postee algo.
       - name: Elegir la placa del dia
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && inputs.reel == '' }}
         run: python ig_daily.py placa
 
       # Estos tres son solo lecturas de estado, sin efecto sobre Instagram: van
@@ -128,7 +139,7 @@ jobs:
       # de base. Su PNG ya esta en el repo desde hace commits, asi que no hay
       # nada que pushear ni que esperar al CDN antes de publicarla.
       - name: Publicar la placa del dia
-        if: ${{ !cancelled() && steps.cfg.outputs.ready == 'true' }}
+        if: ${{ !cancelled() && inputs.reel == '' && steps.cfg.outputs.ready == 'true' }}
         env:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
@@ -145,7 +156,7 @@ jobs:
       # Igual que el marcador de los cambios: sin este commit la rotacion no
       # avanza y manana volveria a tocar la misma placa.
       - name: Commitear la rotacion de la placa
-        if: ${{ !cancelled() && steps.cfg.outputs.ready == 'true' }}
+        if: ${{ !cancelled() && inputs.reel == '' && steps.cfg.outputs.ready == 'true' }}
         run: |
           if [ -f ig/media/last_placa.txt ]; then
             git config user.name "verdikt-bot"
@@ -154,6 +165,25 @@ jobs:
             git commit -m "IG: placa publicada ($(cat ig/media/last_placa.txt))" || echo "sin cambios"
             git push
           fi
+
+      # El MP4 tiene que estar COMMITEADO: Instagram no recibe bytes, baja el
+      # video de una URL publica https. Se chequea que el archivo y su caption
+      # existan ANTES de hablar con la Graph API, porque un 404 deja el
+      # contenedor en ERROR con un mensaje que no explica nada.
+      - name: Publicar el reel indicado
+        if: ${{ !cancelled() && inputs.reel != '' && steps.cfg.outputs.ready == 'true' }}
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: |
+          VIDEO="${{ inputs.reel }}"
+          CAP="${VIDEO%.mp4}.txt"
+          test -f "$VIDEO" || { echo "::error::No existe $VIDEO en el repo"; exit 1; }
+          test -f "$CAP"   || { echo "::error::No existe el caption $CAP"; exit 1; }
+          URL="https://raw.githubusercontent.com/${{ github.repository }}/$(git rev-parse HEAD)/$VIDEO"
+          echo "Video publico: $URL"
+          curl -sI "$URL" | head -3   # si el CDN todavia no lo sirve, se ve aca
+          python ig_publish.py --video-url "$URL" --caption-file "$CAP" ${{ steps.mode.outputs.dry }}
 
       - name: Aviso si falta configurar
         if: steps.cfg.outputs.ready != 'true'
