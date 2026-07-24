@@ -38,51 +38,164 @@ PAD = 64 * S
 
 # ── Biblioteca de placas ──────────────────────────────────────────────────────
 # `accent`: la palabra que va en verde dentro de la frase (statement).
+def _st(texto, accent, pie=""):
+    return {"tipo": "statement", "texto": texto, "accent": accent,
+            "pie": pie or "app.verdikt.finance"}
+
+
+def _li(kicker, titulo, *items):
+    return {"tipo": "lista", "kicker": kicker, "titulo": titulo, "items": list(items)}
+
+
 PLACAS = {
-    "manifiesto": {
-        "tipo": "statement",
-        "texto": "No te decimos qué comprar. Te damos un veredicto.",
-        "accent": "veredicto.",
-        "pie": "app.verdikt.finance",
-    },
-    "esperar": {
-        "tipo": "statement",
-        "texto": "Esperar también es una posición.",
-        "accent": "posición.",
-        "pie": "No entrar es, muchas veces, la mejor operación del día.",
-    },
-    "senales": {
-        "tipo": "lista",
-        "kicker": "aprender",
-        "titulo": "3 señales que confunden a los principiantes",
-        "items": [
-            "RSI bajo no es “barato”. Puede seguir cayendo.",
-            "Volumen sin dirección no confirma nada.",
-            "Una vela verde no es una tendencia.",
-        ],
-    },
-    "filtros": {
-        "tipo": "lista",
-        "kicker": "cómo decide",
-        "titulo": "Un veredicto pasa por 4 filtros",
-        "items": [
-            "Tendencia diaria a favor.",
-            "Confirmación en el gráfico de 1 hora.",
-            "Riesgo mínimo exigido para entrar.",
-            "Momentum que todavía no se agotó.",
-        ],
-    },
-    "confirmacion": {
-        "tipo": "lista",
-        "kicker": "cómo decide",
-        "titulo": "Por qué exigimos confirmación en 1 hora",
-        "items": [
-            "El gráfico diario marca la dirección de fondo.",
-            "El de 1 hora evita entrar contra un rebote falso.",
-            "Sin las dos alineadas, no hay veredicto de compra.",
-        ],
-    },
+    # ── Declaraciones de marca ────────────────────────────────────────────────
+    "manifiesto": _st("No te decimos qué comprar. Te damos un veredicto.", "veredicto."),
+    "esperar": _st("Esperar también es una posición.", "posición.",
+                   "No entrar es, muchas veces, la mejor operación del día."),
+    "probabilidades": _st("El mercado no te da certezas. Te da probabilidades.",
+                          "probabilidades."),
+    "criterio": _st("Un número no reemplaza tu criterio. Lo ordena.", "criterio."),
+    "porque": _st("La peor operación es la que no sabías por qué hacías.", "por qué"),
+    "momentos": _st("No hay activos buenos ni malos. Hay momentos.", "momentos."),
+    "salida": _st("Si no sabés dónde salís, todavía no sabés si entrás.", "salís,"),
+    "perder-poco": _st("Perder poco a tiempo también es ganar.", "ganar."),
+    "precio-valor": _st("El precio te dice cuánto pagás. No cuánto vale.", "vale."),
+    "barato": _st("Comprar barato no es lo mismo que comprar bien.", "barato"),
+    "medir": _st("Lo que no medís, lo estás adivinando.", "medís,"),
+    "disciplina": _st("El mercado premia la disciplina, no la intuición.", "disciplina,"),
+
+    # ── Educativas ────────────────────────────────────────────────────────────
+    "senales": _li("aprender", "3 señales que confunden a los principiantes",
+                   "RSI bajo no es “barato”. Puede seguir cayendo.",
+                   "Volumen sin dirección no confirma nada.",
+                   "Una vela verde no es una tendencia."),
+    "per": _li("aprender", "Qué es el PER y qué no te dice",
+               "Compara el precio con las ganancias de la empresa.",
+               "Un PER bajo puede ser una oportunidad o una empresa en problemas.",
+               "Solo sirve comparando empresas del mismo sector."),
+    "precio-cara": _li("aprender", "Por qué el precio no dice si una acción está cara",
+                       "Una acción de $5 puede estar más cara que una de $500.",
+                       "Lo que importa es cuánto valen las ganancias detrás.",
+                       "El precio solo dice cuánto sale una unidad."),
+    "media-movil": _li("aprender", "Qué es una media móvil y para qué sirve",
+                       "Es el precio promedio de los últimos N días.",
+                       "Suaviza el ruido diario y deja ver la dirección.",
+                       "No predice: describe lo que ya viene pasando."),
+    "soporte-resistencia": _li("aprender", "Soporte y resistencia, sin misterio",
+                               "Soporte: zona donde históricamente aparecen compradores.",
+                               "Resistencia: zona donde aparecen vendedores.",
+                               "No son paredes. Son zonas donde el precio suele frenar."),
+    "stop-loss": _li("aprender", "Qué es el stop loss y por qué se define antes",
+                     "Es el precio al que aceptás que te equivocaste.",
+                     "Se fija ANTES de entrar, con la cabeza fría.",
+                     "Definirlo después es negociar con vos mismo."),
+    "riesgo-beneficio": _li("aprender", "Riesgo/beneficio: la cuenta que casi nadie hace",
+                            "Cuánto arriesgo contra cuánto puedo ganar.",
+                            "Si arriesgás 10 para ganar 10, necesitás acertar siempre.",
+                            "Con 1 a 3, alcanza con acertar una de cada tres."),
+    "drawdown": _li("aprender", "Qué es el drawdown y por qué duele",
+                    "Es cuánto cayó tu cartera desde su punto más alto.",
+                    "Una caída del 50% necesita un 100% para recuperarse.",
+                    "Por eso proteger el capital vale más que acertar."),
+    "ya-bajo": _li("aprender", "Por qué “ya bajó mucho” no es una razón",
+                   "Una acción que cayó 50% puede caer otro 50%.",
+                   "El precio pasado no pone un piso.",
+                   "Lo barato se define por el negocio, no por el gráfico."),
+    "promediar": _li("aprender", "Promediar a la baja: plan o terquedad",
+                     "Es plan si estaba escrito antes de comprar.",
+                     "Es terquedad si nace de no querer aceptar la pérdida.",
+                     "La diferencia no está en el precio: está en la decisión."),
+    "cedear-que-es": _li("aprender", "Qué es un CEDEAR, en criollo",
+                         "Un certificado que representa acciones del exterior.",
+                         "Se compra en pesos, en el mercado argentino.",
+                         "Te da exposición a la empresa sin sacar la plata del país."),
+    "cedear-ratio": _li("aprender", "Por qué un CEDEAR no vale lo mismo que la acción",
+                        "Cada CEDEAR equivale a una fracción de la acción real.",
+                        "Esa proporción se llama ratio y cambia según la empresa.",
+                        "Sin mirar el ratio, cualquier comparación de precios engaña."),
+    "ccl": _li("aprender", "Qué es el dólar CCL y por qué te afecta",
+               "Es el tipo de cambio implícito en comprar y vender activos.",
+               "Los CEDEARs se mueven con la acción Y con el CCL.",
+               "Podés acertar la acción y perder por el dólar."),
+    "diversificar": _li("aprender", "Diversificar no es comprar diez cosas parecidas",
+                        "Diez tecnológicas caen juntas: eso no es diversificar.",
+                        "Diversificar es tener activos que no se mueven igual.",
+                        "Si todo sube junto, también va a bajar junto."),
+    "volatilidad": _li("aprender", "Volatilidad y riesgo no son lo mismo",
+                       "Volatilidad es cuánto se mueve el precio.",
+                       "Riesgo es la chance de perder plata de forma permanente.",
+                       "Un activo tranquilo también puede arruinarte."),
+    "dividendos": _li("aprender", "Qué son los dividendos y de dónde salen",
+                      "Es parte de la ganancia que la empresa reparte.",
+                      "El día que los paga, la acción vale menos por ese monto.",
+                      "No es plata gratis: es plata que sale de la empresa."),
+    "spread": _li("aprender", "El spread: el costo que no ves",
+                  "Es la diferencia entre el precio de compra y el de venta.",
+                  "Lo pagás al entrar y al salir, aunque no figure como comisión.",
+                  "En activos poco operados puede costarte más que la comisión."),
+    "volumen": _li("aprender", "Por qué el volumen importa tanto como el precio",
+                   "El volumen es cuánta gente respaldó ese movimiento.",
+                   "Una suba sin volumen es una suba sin convicción.",
+                   "Los movimientos que duran suelen venir acompañados."),
+    "costo-oportunidad": _li("aprender", "Qué es el costo de oportunidad",
+                             "Es lo que dejás de ganar por elegir una cosa y no otra.",
+                             "Sostener una posición muerta cuesta, aunque no pierda.",
+                             "El capital quieto también tiene precio."),
+    "tres-errores": _li("aprender", "Tres errores que cometen casi todos al empezar",
+                        "Entrar sin saber a qué precio saldrían.",
+                        "Poner en una sola apuesta lo que no pueden perder.",
+                        "Cambiar de estrategia cada vez que una falla."),
+
+    # ── Cómo decide el sistema ────────────────────────────────────────────────
+    "filtros": _li("cómo decide", "Un veredicto pasa por 4 filtros",
+                   "Tendencia diaria a favor.",
+                   "Confirmación en el gráfico de 1 hora.",
+                   "Riesgo mínimo exigido para entrar.",
+                   "Momentum que todavía no se agotó."),
+    "confirmacion": _li("cómo decide", "Por qué exigimos confirmación en 1 hora",
+                        "El gráfico diario marca la dirección de fondo.",
+                        "El de 1 hora evita entrar contra un rebote falso.",
+                        "Sin las dos alineadas, no hay veredicto de compra."),
+    "score-mide": _li("cómo decide", "Qué mide el score de 0 a 100",
+                      "Resume tendencia, momentum, volumen y riesgo en un número.",
+                      "Es una foto del panorama técnico, no una predicción.",
+                      "Sirve para comparar activos entre sí el mismo día."),
+    "cinco-veredictos": _li("cómo decide", "Por qué hay cinco veredictos y no dos",
+                            "El mercado no es binario: casi todo es matiz.",
+                            "Entre comprar y evitar hay tres estados intermedios.",
+                            "Forzar todo a sí o no esconde justamente lo que importa."),
+    "cambia-diario": _li("cómo decide", "Por qué el veredicto cambia todos los días",
+                         "Se recalcula con los datos de cada cierre.",
+                         "Si el panorama cambia, el veredicto cambia con él.",
+                         "Un veredicto viejo no describe el mercado de hoy."),
+    "no-mira": _li("cómo decide", "Qué NO mira Verdikt",
+                   "No adivina hacia dónde va el precio.",
+                   "No sabe cuánta plata tenés ni cuánto podés arriesgar.",
+                   "No reemplaza tu decisión: la informa."),
+    "score-alto": _li("cómo decide", "Un score alto no es una orden de compra",
+                      "Dice que el panorama técnico acompaña, nada más.",
+                      "El tamaño de la posición sigue siendo tuyo.",
+                      "Sin plan de salida, ningún número te salva."),
+    "cedear-veredicto": _li("cómo decide", "Cómo se arma el veredicto de un CEDEAR",
+                            "Se analiza la acción real, en su mercado de origen.",
+                            "Ahí está el volumen que de verdad mueve el precio.",
+                            "El CEDEAR sigue a esa acción, más el efecto del dólar."),
 }
+
+# Orden de publicacion. Arranca con declaraciones y educativas: explicar el
+# metodo antes de que a nadie le importe rinde poco, asi que las de "como
+# decide" quedan para mas adelante, cuando ya haya audiencia.
+ORDEN = [
+    "manifiesto", "senales", "probabilidades", "stop-loss", "esperar",
+    "cedear-que-es", "criterio", "riesgo-beneficio", "precio-valor", "ya-bajo",
+    "momentos", "media-movil", "salida", "diversificar", "porque",
+    "volumen", "barato", "precio-cara", "perder-poco", "ccl",
+    "medir", "soporte-resistencia", "disciplina", "per", "drawdown",
+    "filtros", "promediar", "score-mide", "volatilidad", "confirmacion",
+    "spread", "cinco-veredictos", "dividendos", "cambia-diario",
+    "costo-oportunidad", "score-alto", "cedear-ratio", "no-mira",
+    "tres-errores", "cedear-veredicto",
+]
 
 
 def _chrome(d):
@@ -130,8 +243,18 @@ def _statement(d, cfg):
     sans = _font(["Inter-Regular.ttf", "segoeui.ttf", "DejaVuSans.ttf"], 30 * S)
     mono = _font(["CascadiaCode-Regular.ttf", "consola.ttf", "DejaVuSansMono.ttf"], 30 * S)
 
-    accent = cfg.get("accent")
-    words = [(w, GREEN if w == accent else TEXT) for w in cfg["texto"].split()]
+    # El acento puede ser una frase ("por qué"), no solo una palabra: se busca
+    # la secuencia consecutiva y se pinta entera. Marcando palabra por palabra,
+    # "por" salia en verde y "qué" en blanco.
+    palabras = cfg["texto"].split()
+    acc = (cfg.get("accent") or "").split()
+    marca = [False] * len(palabras)
+    for i in range(len(palabras) - len(acc) + 1) if acc else []:
+        if palabras[i:i + len(acc)] == acc:
+            for j in range(i, i + len(acc)):
+                marca[j] = True
+            break
+    words = [(w, GREEN if marca[i] else TEXT) for i, w in enumerate(palabras)]
     lines, space = _wrap(d, words, f, W - PAD * 2)
 
     # Centrado en el espacio REAL (entre el header y el pie), no en el lienzo:
@@ -203,6 +326,38 @@ def _lista(d, cfg):
     d.text((PAD, H - 150 * S), "Un veredicto claro, de 0 a 100. Actualizado todos los días.",
            font=sans_sm, fill=DIM)
     d.text((PAD, H - 96 * S), "app.verdikt.finance", font=mono, fill=GREEN)
+
+
+HASHTAGS = ("#inversiones #cedears #cripto #trading #bolsa #acciones "
+            "#finanzas #mercados #argentina #análisis")
+
+
+def caption(nombre: str) -> str:
+    """El caption se DERIVA de la placa en vez de escribirse aparte: asi no se
+    pueden desincronizar, que es lo que ya paso una vez con los cambios."""
+    cfg = PLACAS[nombre]
+    if cfg["tipo"] == "statement":
+        cuerpo = [cfg["texto"]]
+        pie = cfg.get("pie", "")
+        if pie and not pie.startswith("app."):
+            cuerpo.append(pie)
+    else:
+        cuerpo = [cfg["titulo"], ""]
+        cuerpo += [f"· {it}" for it in cfg["items"]]
+    return "\n".join(cuerpo + [
+        "",
+        "Analizá cualquier acción, CEDEAR o cripto en app.verdikt.finance",
+        "",
+        HASHTAGS,
+    ])
+
+
+def siguiente(ultima: str = "") -> str:
+    """Proxima placa de la rotacion. Con 40 placas a una por dia, el ciclo
+    tarda mas de un mes en repetirse."""
+    if ultima in ORDEN:
+        return ORDEN[(ORDEN.index(ultima) + 1) % len(ORDEN)]
+    return ORDEN[0]
 
 
 def generate(nombre: str, out_path: str = None) -> str:

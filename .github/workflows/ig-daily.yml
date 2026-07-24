@@ -1,9 +1,15 @@
 # Posteo diario del Instagram de Verdikt, 100% automatico.
 #
-# Flujo: genera la imagen de "cambios de veredicto" con datos vivos -> la
-# commitea/pushea a este repo (para que tenga URL publica) -> la publica en el
-# feed de Instagram por la Graph API oficial. Si un dia no hubo cambios de
-# veredicto, no publica nada (no spamea un posteo vacio).
+# Publica dos cosas, con criterios distintos:
+#
+#   cambios de veredicto -> SOLO si hoy hubo. Se genera con datos vivos, se
+#     commitea/pushea a este repo (para que tenga URL publica) y se publica por
+#     la Graph API oficial. Sin cambios, no sale nada (no spamea un post vacio).
+#
+#   placa evergreen -> TODOS los dias, haya cambios o no: es lo que le da ritmo
+#     a la cuenta. Su PNG ya vive commiteado en ig/placas/, asi que aca solo se
+#     elige cual toca en la rotacion y se publica. Los dias con cambios salen
+#     los dos posteos.
 #
 # Para que PUBLIQUE hacen falta dos secrets del repo (Settings -> Secrets and
 # variables -> Actions): IG_USER_ID e IG_ACCESS_TOKEN. Sin ellos genera y
@@ -43,8 +49,23 @@ jobs:
       - name: Generar el posteo del dia
         run: python ig_daily.py generate
 
+      # La placa evergreen sale TODOS los dias, haya o no cambios de veredicto:
+      # es lo que le da ritmo a la cuenta. Las 40 ya estan dibujadas en
+      # ig/placas/, aca solo se elige cual toca segun la rotacion.
+      #
+      # Corre incluso si el paso anterior fallo (backend caido, por ejemplo):
+      # elegir una placa no depende de datos del dia, y justo un dia sin datos
+      # es cuando mas hace falta que la cuenta postee algo.
+      - name: Elegir la placa del dia
+        if: ${{ !cancelled() }}
+        run: python ig_daily.py placa
+
+      # Estos tres son solo lecturas de estado, sin efecto sobre Instagram: van
+      # con !cancelled() para que un fallo al generar los cambios no se lleve
+      # puesto el camino de la placa, que depende de sus salidas.
       - name: ¿Hay algo para publicar?
         id: check
+        if: ${{ !cancelled() }}
         run: |
           if [ -f ig/media/latest_image.txt ]; then
             echo "post=yes" >> "$GITHUB_OUTPUT"
@@ -56,7 +77,20 @@ jobs:
 
       - name: ¿Estan los secrets de Instagram?
         id: cfg
+        if: ${{ !cancelled() }}
         run: echo "ready=${{ secrets.IG_ACCESS_TOKEN != '' && secrets.IG_USER_ID != '' }}" >> "$GITHUB_OUTPUT"
+
+      # Se decide una sola vez y lo usan los dos publish: si cada uno repitiera
+      # la condicion, alcanzaria con tocar una para publicar de verdad sin querer.
+      - name: ¿Dry-run o de verdad?
+        id: mode
+        if: ${{ !cancelled() }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "dry=--dry-run" >> "$GITHUB_OUTPUT"
+          else
+            echo "dry=" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Commitear la imagen (le da URL publica)
         if: steps.check.outputs.post == 'yes'
@@ -77,11 +111,7 @@ jobs:
           URL="https://raw.githubusercontent.com/${{ github.repository }}/$SHA/${{ steps.check.outputs.image }}"
           echo "Imagen publica: $URL"
           sleep 10 # darle al CDN de GitHub un momento para servir esa SHA
-          DRY=""
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
-            DRY="--dry-run"
-          fi
-          python ig_daily.py publish --image-url "$URL" $DRY
+          python ig_daily.py publish --image-url "$URL" ${{ steps.mode.outputs.dry }}
 
       # El marcador de "ultima fecha publicada" solo sirve si sobrevive a la
       # corrida: sin este commit, manana el repo no sabria que ya se posteo.
@@ -94,6 +124,37 @@ jobs:
             git push
           fi
 
+      # Va DESPUES de los cambios y sin depender de ellos: la placa es el posteo
+      # de base. Su PNG ya esta en el repo desde hace commits, asi que no hay
+      # nada que pushear ni que esperar al CDN antes de publicarla.
+      - name: Publicar la placa del dia
+        if: ${{ !cancelled() && steps.cfg.outputs.ready == 'true' }}
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: |
+          if [ ! -f ig/media/placa_image.txt ]; then
+            echo "Sin placa para hoy: no se publica."
+            exit 0
+          fi
+          IMG=$(cat ig/media/placa_image.txt)
+          URL="https://raw.githubusercontent.com/${{ github.repository }}/$(git rev-parse HEAD)/$IMG"
+          echo "Placa publica: $URL"
+          python ig_daily.py publish-placa --image-url "$URL" ${{ steps.mode.outputs.dry }}
+
+      # Igual que el marcador de los cambios: sin este commit la rotacion no
+      # avanza y manana volveria a tocar la misma placa.
+      - name: Commitear la rotacion de la placa
+        if: ${{ !cancelled() && steps.cfg.outputs.ready == 'true' }}
+        run: |
+          if [ -f ig/media/last_placa.txt ]; then
+            git config user.name "verdikt-bot"
+            git config user.email "bot@verdikt.finance"
+            git add ig/media/last_placa.txt
+            git commit -m "IG: placa publicada ($(cat ig/media/last_placa.txt))" || echo "sin cambios"
+            git push
+          fi
+
       - name: Aviso si falta configurar
-        if: steps.check.outputs.post == 'yes' && steps.cfg.outputs.ready != 'true'
-        run: echo "::notice::La imagen se genero y commiteo, pero faltan los secrets IG_USER_ID / IG_ACCESS_TOKEN para publicar. Ver SETUP-IG.md."
+        if: steps.cfg.outputs.ready != 'true'
+        run: echo "::notice::Las imagenes se generaron, pero faltan los secrets IG_USER_ID / IG_ACCESS_TOKEN para publicar. Ver SETUP-IG.md."

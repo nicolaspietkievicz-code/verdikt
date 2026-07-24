@@ -1,15 +1,21 @@
 """Orquestador del posteo diario de Instagram de Verdikt.
 
-Dos subcomandos (el workflow los llama en orden, con el commit/push en el medio
-para que la imagen tenga URL publica antes de publicar):
+Un par de subcomandos por cada cosa que se publica (el workflow los llama en
+orden, con el commit/push en el medio para que la imagen tenga URL publica
+antes de publicar):
 
-  generate  -> pide los cambios de veredicto del dia; si NO hay, no deja nada
-               (el workflow lo detecta y no publica). Si hay, dibuja la imagen
-               fechada en ig/media/, escribe el caption y deja punteros en
-               ig/media/latest_image.txt y ig/media/latest_caption.txt.
+  generate      -> pide los cambios de veredicto del dia; si NO hay, no deja
+                   nada (el workflow lo detecta y no publica). Si hay, dibuja la
+                   imagen fechada en ig/media/, escribe el caption y deja
+                   punteros en ig/media/latest_image.txt y latest_caption.txt.
 
-  publish   -> toma --image-url (la URL publica del PNG ya pusheado) y publica
-               con el caption guardado, via ig_publish.publish().
+  publish       -> toma --image-url (la URL publica del PNG ya pusheado) y
+                   publica con el caption guardado, via ig_publish.publish().
+
+  placa         -> elige la placa evergreen que toca hoy en la rotacion. No
+                   dibuja nada: los PNG ya estan commiteados en ig/placas/.
+
+  publish-placa -> publica esa placa y recien entonces avanza la rotacion.
 
 Asi el generar y el publicar quedan separados por el push (Instagram baja la
 imagen por URL, tiene que estar viva antes)."""
@@ -36,6 +42,20 @@ KEEP = 14  # cuantas imagenes viejas conservar (para no inflar el repo)
 # el workflow a mano dos veces el mismo dia.
 LAST_PUB_FILE = os.path.join(MEDIA_DIR, "last_published.txt")
 DATE_FILE = os.path.join(MEDIA_DIR, "latest_date.txt")
+
+# Placa evergreen del dia. A diferencia de la de cambios, NO se genera en cada
+# corrida: las 40 ya estan dibujadas y commiteadas en ig/placas/, asi que solo
+# hace falta elegir cual toca y apuntarle. La rotacion se guarda en
+# last_placa.txt para que sobreviva entre corridas.
+PLACA_LAST_FILE = os.path.join(MEDIA_DIR, "last_placa.txt")
+PLACA_IMG_FILE = os.path.join(MEDIA_DIR, "placa_image.txt")
+PLACA_CAP_FILE = os.path.join(MEDIA_DIR, "placa_caption.txt")
+PLACA_NAME_FILE = os.path.join(MEDIA_DIR, "placa_name.txt")
+
+_placas_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "make-ig-placas.py")
+_placas_spec = importlib.util.spec_from_file_location("make_ig_placas", _placas_path)
+placas = importlib.util.module_from_spec(_placas_spec)
+_placas_spec.loader.exec_module(placas)
 
 VERDICT_ES = {
     "COMPRA": "COMPRA", "ACUMULAR": "ACUMULAR", "NEUTRAL": "NEUTRAL",
@@ -134,6 +154,43 @@ def cmd_generate():
     return 0
 
 
+def cmd_placa():
+    """Elige la placa que toca hoy y deja los punteros. La imagen ya existe
+    commiteada, asi que no se dibuja nada aca."""
+    nombre = placas.siguiente(_read(PLACA_LAST_FILE))
+    img = f"ig/placas/{nombre}.png"
+    if not os.path.exists(img):
+        print(f"Falta la imagen {img}: no se publica placa hoy.")
+        return 0
+
+    os.makedirs(MEDIA_DIR, exist_ok=True)
+    for path, val in ((PLACA_IMG_FILE, img),
+                      (PLACA_CAP_FILE, placas.caption(nombre)),
+                      (PLACA_NAME_FILE, nombre)):
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(val)
+    print(f"Placa de hoy: {nombre} ({img})")
+    return 0
+
+
+def cmd_publish_placa(image_url: str, dry_run: bool):
+    caption = _read(PLACA_CAP_FILE)
+    if not caption:
+        print("No hay placa para publicar.")
+        return 0
+    mid = ig_publish.publish(image_url, caption, dry_run=dry_run)
+    print("placa publicada:", mid)
+    # La rotacion avanza SOLO si Instagram confirmo. Si fallara, manana se
+    # reintenta la misma placa en vez de saltearla.
+    if not dry_run:
+        nombre = _read(PLACA_NAME_FILE)
+        if nombre:
+            with open(PLACA_LAST_FILE, "w", encoding="utf-8") as f:
+                f.write(nombre)
+            print("rotacion avanzada a:", nombre)
+    return 0
+
+
 def cmd_publish(image_url: str, dry_run: bool):
     cap_file = os.path.join(MEDIA_DIR, "latest_caption.txt")
     if not os.path.exists(cap_file):
@@ -165,15 +222,21 @@ def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("generate")
-    p = sub.add_parser("publish")
-    p.add_argument("--image-url", required=True)
-    p.add_argument("--dry-run", action="store_true")
+    sub.add_parser("placa")
+    for nombre in ("publish", "publish-placa"):
+        p = sub.add_parser(nombre)
+        p.add_argument("--image-url", required=True)
+        p.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
 
     if a.cmd == "generate":
         sys.exit(cmd_generate())
+    if a.cmd == "placa":
+        sys.exit(cmd_placa())
     if a.cmd == "publish":
         sys.exit(cmd_publish(a.image_url, a.dry_run))
+    if a.cmd == "publish-placa":
+        sys.exit(cmd_publish_placa(a.image_url, a.dry_run))
 
 
 if __name__ == "__main__":
