@@ -4,3 +4,10 @@ ig/media/latest_*.txt
 # Punteros de la placa del dia: se reescriben en cada corrida. La rotacion en
 # si (last_placa.txt) SI se commitea, es lo unico que tiene que sobrevivir.
 ig/media/placa_*.txt
+
+# Generados por make-ig-reel.py
+ig/reel/data.js
+ig/reel/track.wav
+ig/reel/frames/
+ig/reel/verdict.json
+node_modules/

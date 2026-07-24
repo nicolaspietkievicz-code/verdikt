@@ -1,0 +1,449 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Verdikt reel · por qué 71</title>
+<style>
+  @font-face { font-family: 'InterV'; src: url('../fonts/Inter-Bold.ttf'); font-weight: 700; }
+  @font-face { font-family: 'InterV'; src: url('../fonts/Inter-Regular.ttf'); font-weight: 400; }
+  @font-face { font-family: 'CascadiaV'; src: url('../fonts/CascadiaCode-Bold.ttf'); font-weight: 700; }
+  @font-face { font-family: 'CascadiaV'; src: url('../fonts/CascadiaCode-Regular.ttf'); font-weight: 400; }
+
+  :root {
+    --bg: #07090c; --card: #10151d; --border: #252b37;
+    --text: #e6e9ee; --dim: #8b93a1; --green: #2fbf71; --greendim: #1e6042;
+    --red: #e05260; --amber: #d9a13b;
+    /* Color del veredicto: lo fija el JS segun cual sea. Pintar un EVITAR
+       de verde seria mentir con el color. */
+    --acc: #2fbf71;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--bg); }
+  #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+           font-family: 'InterV', sans-serif; color: var(--text); }
+
+  #grid {
+    position: absolute; inset: -200px;
+    background-image:
+      repeating-linear-gradient(0deg, #181c24 0 1px, transparent 1px 84px),
+      repeating-linear-gradient(90deg, #181c24 0 1px, transparent 1px 84px);
+    opacity: .8;
+  }
+  #halo {
+    position: absolute; left: 50%; top: -460px; width: 1600px; height: 1000px;
+    transform: translateX(-50%);
+    background: radial-gradient(closest-side, rgba(47,191,113,.15), transparent 70%);
+  }
+
+  .row { position: absolute; left: 0; width: 1080px; }
+
+  /* ── Acto 1: identidad. El ticker despues se encoge y queda de encabezado ── */
+  #ticker {
+    position: absolute; left: 0; width: 1080px; text-align: center;
+    font-family: 'CascadiaV', monospace; font-weight: 700;
+    letter-spacing: 4px; will-change: transform, opacity;
+  }
+  #name  { text-align: center; font-size: 54px; color: var(--dim); letter-spacing: 2px; }
+  #price {
+    text-align: center; font-family: 'CascadiaV', monospace; font-weight: 700;
+    font-size: 76px; color: var(--text);
+  }
+  #chg { text-align: center; font-family: 'CascadiaV', monospace; font-size: 50px; color: var(--green); }
+
+  /* ── Acto 2: el grafico ─────────────────────────────────────────────────── */
+  #chartWrap { position: absolute; left: 60px; width: 960px; }
+  #chart { display: block; width: 960px; }
+  #chart polyline { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  #pClose { stroke: #4a9eff; stroke-width: 7; }
+  #pEma20 { stroke: var(--amber); stroke-width: 4.5; }
+  #pEma200 { stroke: #8b6ce0; stroke-width: 4.5; }
+  #dot { fill: #4a9eff; }
+  .legend { font-family: 'CascadiaV', monospace; font-size: 34px; color: var(--dim); }
+  #chartLbl { position: absolute; left: 60px; width: 960px; display: flex; gap: 40px; }
+  #chartLbl b { color: var(--text); font-weight: 400; }
+  .sw { display: inline-block; width: 26px; height: 5px; vertical-align: middle; margin-right: 12px; }
+
+  /* ── Acto 3: el numero y las razones ────────────────────────────────────── */
+  #scoreWrap { position: absolute; left: 0; width: 1080px; text-align: center; }
+  #scoreNum {
+    font-family: 'CascadiaV', monospace; font-weight: 700; font-size: 300px;
+    line-height: .9; color: var(--acc); text-shadow: 0 0 90px rgba(47,191,113,.30);
+  }
+  #scoreNum span { font-size: 96px; color: var(--dim); }
+  #bar {
+    position: relative; width: 720px; height: 16px; margin: 26px auto 0;
+    background: #151b25; border-radius: 8px; overflow: hidden;
+  }
+  #barFill { position: absolute; left: 0; top: 0; height: 16px; background: var(--acc); border-radius: 8px; }
+  #ring {
+    position: absolute; left: 50%; width: 760px; height: 760px; margin-left: -380px;
+    border: 6px solid var(--acc); border-radius: 50%;
+  }
+
+  #rows { position: absolute; left: 60px; width: 960px; }
+  .fr {
+    display: flex; align-items: flex-start; gap: 28px;
+    padding: 22px 30px; margin-bottom: 16px;
+    background: rgba(16,21,29,.86); border: 2px solid var(--border); border-radius: 18px;
+    will-change: transform, opacity;
+  }
+  .fr .sg {
+    flex: 0 0 62px; height: 62px; border-radius: 12px;
+    font-family: 'CascadiaV', monospace; font-weight: 700; font-size: 44px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fr.pos .sg { color: var(--green); background: rgba(47,191,113,.14); border: 2px solid rgba(47,191,113,.4); }
+  .fr.neg .sg { color: var(--red);   background: rgba(224,82,96,.14);  border: 2px solid rgba(224,82,96,.4); }
+  .fr.neu .sg { color: var(--dim);   background: rgba(139,147,161,.12); border: 2px solid rgba(139,147,161,.35); }
+  .fr .tx { flex: 1; }
+  .fr .tt { font-size: 44px; line-height: 1.2; }
+  .fr .dd { margin-top: 8px; font-family: 'CascadiaV', monospace; font-size: 32px; color: var(--dim); }
+
+  #tally {
+    position: absolute; left: 0; width: 1080px; text-align: center;
+    font-family: 'CascadiaV', monospace; font-size: 40px; color: var(--dim);
+  }
+  #tally b { color: var(--green); font-weight: 400; }
+  #tally i { color: var(--red); font-style: normal; }
+
+  /* ── Acto 4: veredicto ──────────────────────────────────────────────────── */
+  #verdict {
+    position: absolute; left: 0; width: 1080px; text-align: center;
+    font-size: 140px; font-weight: 700; letter-spacing: 6px; color: var(--acc);
+  }
+  #escala { position: absolute; left: 60px; width: 960px; }
+  #escalaTrack { display: flex; gap: 10px; }
+  #escalaTrack div {
+    flex: 1; height: 14px; border-radius: 7px; background: #1a2130;
+  }
+  #escalaLbl { display: flex; gap: 10px; margin-top: 20px; }
+  #escalaLbl div {
+    flex: 1; text-align: center; font-family: 'CascadiaV', monospace;
+    font-size: 26px; color: var(--dim); letter-spacing: 1px;
+  }
+  #escalaLbl div.on { color: var(--acc); }
+
+  /* ── Acto 5: por que no 100 ─────────────────────────────────────────────── */
+  #whyT {
+    position: absolute; left: 0; width: 1080px; text-align: center;
+    font-size: 92px; font-weight: 700; letter-spacing: -1px;
+  }
+  #whyT span { color: var(--green); }
+  #whyRows { position: absolute; left: 60px; width: 960px; }
+  #riskBox {
+    position: absolute; left: 60px; width: 960px;
+    padding: 30px 34px; border-radius: 18px;
+    background: rgba(217,161,59,.10); border: 2px solid rgba(217,161,59,.45);
+  }
+  #riskBox .k {
+    font-family: 'CascadiaV', monospace; font-size: 30px; color: var(--amber);
+    letter-spacing: 3px; margin-bottom: 14px;
+  }
+  #riskBox .v { font-size: 42px; line-height: 1.25; }
+
+  /* ── Acto 6: cierre ─────────────────────────────────────────────────────── */
+  #end { position: absolute; left: 0; width: 1080px; text-align: center; }
+  #end .mark { width: 250px; height: 250px; margin: 0 auto 50px; }
+  #end .word {
+    font-family: 'CascadiaV', monospace; font-weight: 700; font-size: 94px;
+    letter-spacing: 14px;
+  }
+  #end .word i { color: var(--green); font-style: normal; }
+  #end .url { margin-top: 38px; font-family: 'CascadiaV', monospace; font-size: 58px; color: var(--green); }
+  #end .sub { margin-top: 28px; font-size: 44px; color: var(--dim); letter-spacing: 2px; }
+
+  #flash { position: absolute; inset: 0; background: var(--green); opacity: 0; }
+  #legal {
+    position: absolute; left: 0; bottom: 44px; width: 1080px; text-align: center;
+    font-size: 28px; color: #5c6472;
+  }
+</style>
+
+<div id="stage">
+  <div id="grid"></div>
+  <div id="halo"></div>
+
+  <div id="ticker"></div>
+  <div class="row" id="name"></div>
+  <div class="row" id="price"></div>
+  <div class="row" id="chg"></div>
+
+  <div id="chartWrap">
+    <svg id="chart" viewBox="0 0 1000 400" preserveAspectRatio="none">
+      <polyline id="pEma200"></polyline>
+      <polyline id="pEma20"></polyline>
+      <polyline id="pClose"></polyline>
+      <circle id="dot" r="11"></circle>
+    </svg>
+  </div>
+  <div id="chartLbl" class="legend"></div>
+
+  <div id="ring"></div>
+  <div id="scoreWrap">
+    <div id="scoreNum">0<span>/100</span></div>
+    <div id="bar"><div id="barFill"></div></div>
+  </div>
+
+  <div id="rows"></div>
+  <div id="tally"></div>
+
+  <div id="verdict"></div>
+  <div id="escala">
+    <div id="escalaTrack"></div>
+    <div id="escalaLbl"></div>
+  </div>
+
+  <div id="whyT"></div>
+  <div id="whyRows"></div>
+  <div id="riskBox"><div class="k">QUÉ VIGILAR</div><div class="v"></div></div>
+
+  <div id="end">
+    <svg class="mark" viewBox="0 0 1 1">
+      <line x1=".16" y1=".30" x2=".46" y2=".86" stroke="#1e6042" stroke-width=".11" stroke-linecap="round"/>
+      <line x1=".46" y1=".86" x2=".7255" y2=".3955" stroke="#2fbf71" stroke-width=".11" stroke-linecap="round"/>
+      <polygon points=".8346,.2045 .8557,.4699 .5953,.3211" fill="#2fbf71"/>
+    </svg>
+    <div class="word">VERDIKT<i>_</i></div>
+    <div class="url">app.verdikt.finance</div>
+    <div class="sub">Acciones · CEDEARs · Cripto</div>
+  </div>
+
+  <div id="legal"></div>
+  <div id="flash"></div>
+</div>
+
+<script src="data.js"></script>
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// Animacion del veredicto, dibujada de cero: no hay ni una captura de la app.
+// Todo lo que se ve sale de window.DATA, que es la respuesta del endpoint del
+// producto. Seis actos:
+//   1  identidad del activo
+//   2  el precio contra sus medias (serie real)
+//   3  las razones entran una por una y el numero sube con ellas
+//   4  remata en 71, veredicto y escala de los cinco
+//   5  por que no 100: lo que juega en contra y lo que no aporta
+//   6  cierre de marca
+// Como en la version anterior, seek(t) es funcion pura del tiempo.
+// ─────────────────────────────────────────────────────────────────────────────
+const D = window.DATA;
+const DUR = 20.0;
+
+const el = id => document.getElementById(id);
+const u = (a, b, t) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+const eo3 = x => 1 - Math.pow(1 - x, 3);
+const ei3 = x => x < .5 ? 4*x*x*x : 1 - Math.pow(-2*x + 2, 3)/2;
+const lerp = (a, b, x) => a + (b - a) * x;
+const pulse = (a, b, t) => { const x = u(a, b, t); return x <= 0 || x >= 1 ? 0 : Math.sin(Math.PI * x); };
+const nf = n => n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// ── Contenido ───────────────────────────────────────────────────────────────
+el('ticker').textContent = D.symbol;
+el('name').textContent = D.name;
+el('price').textContent = '$' + nf(D.price) + ' ' + D.currency;
+el('chg').textContent = (D.change_1m >= 0 ? '+' : '') + nf(D.change_1m) + '% en el último mes';
+el('legal').textContent = 'Información educativa, no es asesoramiento financiero.';
+
+el('pClose').setAttribute('points', D.chart.closes);
+el('pEma20').setAttribute('points', D.chart.ema20);
+el('pEma200').setAttribute('points', D.chart.ema200);
+el('chartLbl').innerHTML =
+  `<span><i class="sw" style="background:#4a9eff"></i>Precio</span>` +
+  `<span><i class="sw" style="background:var(--amber)"></i>Media 20</span>` +
+  `<span><i class="sw" style="background:#8b6ce0"></i>Media 200 · <b>${nf(D.ema200_last)}</b></span>`;
+
+// Un veredicto negativo no puede salir del mismo color que uno positivo.
+const COLOR = { COMPRA: '#2fbf71', ACUMULAR: '#2fbf71', NEUTRAL: '#8b93a1',
+                CAUTELA: '#d9a13b', EVITAR: '#e05260' };
+const ACC = COLOR[D.verdict] || '#2fbf71';
+const ACC_RGB = [parseInt(ACC.slice(1,3),16), parseInt(ACC.slice(3,5),16),
+                 parseInt(ACC.slice(5,7),16)].join(',');
+document.documentElement.style.setProperty('--acc', ACC);
+
+const CLASE = { '+': 'pos', '-': 'neg', '=': 'neu' };
+function fila(r) {
+  const d = document.createElement('div');
+  d.className = 'fr ' + CLASE[r.signo];
+  d.innerHTML = `<div class="sg">${r.signo}</div><div class="tx">` +
+                `<div class="tt">${r.titulo}</div>` +
+                (r.detalle ? `<div class="dd">${r.detalle}</div>` : '') + `</div>`;
+  return d;
+}
+const $rows = el('rows'), $why = el('whyRows');
+D.razones.forEach(r => $rows.appendChild(fila(r)));
+D.contras.forEach(r => $why.appendChild(fila(r)));
+const FR = [...$rows.children], WR = [...$why.children];
+
+el('tally').innerHTML =
+  `<b>${D.conteo.positivo} a favor</b> · ${D.conteo.neutral} neutras · <i>${D.conteo.negativo} en contra</i>`;
+el('verdict').textContent = D.verdict;
+el('riskBox').querySelector('.v').textContent = D.risk;
+
+// Escala de los cinco veredictos
+const $tr = el('escalaTrack'), $lb = el('escalaLbl');
+const iAct = D.escala.indexOf(D.verdict);
+D.escala.forEach((nombre, i) => {
+  const seg = document.createElement('div'); $tr.appendChild(seg);
+  const lab = document.createElement('div'); lab.textContent = nombre;
+  if (i === iAct) lab.className = 'on';
+  $lb.appendChild(lab);
+});
+const SEG = [...$tr.children];
+
+// Largo real de cada linea, para revelarla dibujandose
+const $pc = el('pClose'), $p20 = el('pEma20'), $p200 = el('pEma200'), $dot = el('dot');
+const LEN = { c: $pc.getTotalLength(), a: $p20.getTotalLength(), b: $p200.getTotalLength() };
+for (const [p, L] of [[$pc, LEN.c], [$p20, LEN.a], [$p200, LEN.b]]) p.style.strokeDasharray = L;
+const ptos = D.chart.closes.split(' ');
+const ult = ptos[ptos.length - 1].split(',').map(Number);
+$dot.setAttribute('cx', ult[0]); $dot.setAttribute('cy', ult[1]);
+
+// ── Tiempos ─────────────────────────────────────────────────────────────────
+const A1 = 0.00, A2 = 2.10, A3 = 5.60, A4 = 11.00, A5 = 13.70, A6 = 17.20;
+const T_FILA = 0.80;                       // cada razon entra cada 0.8s
+const T_CIERRA = A3 + 0.35 + FR.length * T_FILA;   // cuando termino de subir el numero
+
+function seek(t) {
+  el('grid').style.transform = `translate(${-(t * 5) % 84}px, ${-(t * 3) % 84}px)`;
+
+  // ── Acto 1: identidad ─────────────────────────────────────────────────────
+  // El ticker entra grande y centrado, y en el acto 2 se encoge a encabezado.
+  const tIn = eo3(u(0, .45, t));
+  const tUp = ei3(u(A2 - .35, A2 + .55, t));
+  const fuera = u(A5 - .35, A5, t);                    // se va con el acto 5
+  el('ticker').style.opacity = (tIn * (1 - fuera)).toFixed(3);
+  el('ticker').style.fontSize = lerp(210, 92, tUp).toFixed(1) + 'px';
+  el('ticker').style.top = lerp(700, 128, tUp).toFixed(1) + 'px';
+  el('ticker').style.transform = `scale(${lerp(1.08, 1, tIn).toFixed(4)})`;
+
+  const nIn = eo3(u(.30, .80, t));
+  el('name').style.opacity = (nIn * (1 - tUp) ).toFixed(3);
+  el('name').style.top = lerp(960, 900, tUp).toFixed(1) + 'px';
+
+  const pIn = eo3(u(.55, 1.15, t));
+  el('price').style.opacity = (pIn * (1 - fuera)).toFixed(3);
+  el('price').style.top = lerp(1075, 246, tUp).toFixed(1) + 'px';
+  el('price').style.fontSize = lerp(76, 52, tUp).toFixed(1) + 'px';
+
+  const cIn = eo3(u(.85, 1.45, t));
+  el('chg').style.opacity = (cIn * (1 - fuera)).toFixed(3);
+  el('chg').style.top = lerp(1180, 316, tUp).toFixed(1) + 'px';
+  el('chg').style.fontSize = lerp(50, 40, tUp).toFixed(1) + 'px';
+
+  // ── Acto 2: el grafico se dibuja ──────────────────────────────────────────
+  // Primero el precio, y recien despues las medias: asi se entiende que las
+  // medias son una referencia sobre el precio y no tres lineas cualquiera.
+  const gAp = u(A2, A2 + .5, t);
+  const dC = eo3(u(A2 + .25, A2 + 2.05, t));
+  const dM = eo3(u(A2 + 1.55, A2 + 2.75, t));
+  const gBaja = u(A3 - .35, A3 + .45, t);        // pasa a fondo cuando entran las razones
+  const gFuera = u(A5 - .5, A5 - .05, t);
+  const gVis = gAp * (1 - gFuera);
+  el('chartWrap').style.opacity = (gVis * lerp(1, .14, gBaja)).toFixed(3);
+  el('chartWrap').style.top = lerp(700, 470, gBaja).toFixed(1) + 'px';
+  el('chart').style.height = lerp(420, 300, gBaja).toFixed(1) + 'px';
+  // La leyenda entra CON las medias, no antes: si no, nombra lineas que
+  // todavia no se dibujaron.
+  el('chartLbl').style.opacity = (eo3(u(A2 + 1.5, A2 + 2.15, t)) * (1 - gBaja)).toFixed(3);
+  el('chartLbl').style.top = lerp(1180, 1140, gBaja).toFixed(1) + 'px';
+  $pc.style.strokeDashoffset = (LEN.c * (1 - dC)).toFixed(1);
+  $p20.style.strokeDashoffset = (LEN.a * (1 - dM)).toFixed(1);
+  $p200.style.strokeDashoffset = (LEN.b * (1 - dM)).toFixed(1);
+  $dot.style.opacity = (eo3(u(A2 + 1.9, A2 + 2.2, t)) * (1 - gBaja)).toFixed(3);
+
+  // ── Acto 3: razones + numero ──────────────────────────────────────────────
+  const sAp = eo3(u(A3 - .1, A3 + .5, t));
+  const sFuera = u(A5 - .4, A5, t);
+  // Al cerrar el conteo el numero sube y crece: deja libre la franja de abajo
+  // para el veredicto, el conteo y la escala, que es lo que entra despues.
+  const sTop = lerp(560, 430, ei3(u(A4, A4 + .8, t)));
+  el('scoreWrap').style.opacity = (sAp * (1 - sFuera)).toFixed(3);
+  el('scoreWrap').style.top = sTop.toFixed(1) + 'px';
+
+  // El numero sube A MEDIDA que entran las razones: es lo que explica el 71.
+  const prog = Math.max(0, Math.min(1, (t - (A3 + .35)) / (FR.length * T_FILA)));
+  const n = Math.round(D.score * eo3(prog));
+  el('scoreNum').firstChild.nodeValue = String(n);
+  const kick = pulse(T_CIERRA, T_CIERRA + .34, t);
+  el('scoreNum').style.transform = `scale(${(1 + .09 * kick).toFixed(4)})`;
+  el('scoreNum').style.fontSize = lerp(300, 360, ei3(u(A4, A4 + .8, t))).toFixed(1) + 'px';
+  el('barFill').style.width = (720 * eo3(prog) * D.score / 100).toFixed(1) + 'px';
+
+  const rp = u(T_CIERRA, T_CIERRA + .9, t);
+  el('ring').style.opacity = (rp > 0 && rp < 1 ? (1 - rp) * .48 : 0).toFixed(3);
+  el('ring').style.top = (sTop - 230).toFixed(1) + 'px';   // centrado en el numero
+  el('ring').style.transform = `scale(${lerp(.4, 1.45, eo3(rp)).toFixed(4)})`;
+
+  // filas: entran de a una, desde la izquierda, y se retiran ANTES de que
+  // aparezca el veredicto: si no, "ACUMULAR" cae escrito sobre las razones.
+  el('rows').style.top = '900px';
+  const rFuera = u(A4, A4 + .5, t);
+  FR.forEach((d, i) => {
+    const t0 = A3 + .35 + i * T_FILA;
+    const e = eo3(u(t0, t0 + .45, t));
+    d.style.opacity = (e * (1 - rFuera)).toFixed(3);
+    d.style.transform = `translateX(${lerp(-90, 0, e).toFixed(1)}px)`;
+  });
+
+  // ── Acto 4: veredicto, conteo y escala ────────────────────────────────────
+  // Los tres entran en la franja que dejaron las razones, escalonados.
+  const vFuera = u(A5 - .4, A5, t);
+  const vIn = eo3(u(A4 + .55, A4 + 1.05, t));
+  el('verdict').style.opacity = (vIn * (1 - vFuera)).toFixed(3);
+  el('verdict').style.top = '900px';
+  el('verdict').style.transform = `scale(${lerp(1.28, 1, vIn).toFixed(4)})`;
+  el('verdict').style.letterSpacing = lerp(28, 6, vIn).toFixed(1) + 'px';
+
+  const tyIn = eo3(u(A4 + .95, A4 + 1.45, t));
+  el('tally').style.opacity = (tyIn * (1 - vFuera)).toFixed(3);
+  el('tally').style.top = lerp(1120, 1085, tyIn).toFixed(1) + 'px';
+
+  const eIn = eo3(u(A4 + 1.30, A4 + 1.95, t));
+  el('escala').style.opacity = (eIn * (1 - vFuera)).toFixed(3);
+  el('escala').style.top = lerp(1270, 1230, eIn).toFixed(1) + 'px';
+  // los segmentos se encienden hasta el veredicto, uno tras otro
+  SEG.forEach((s, i) => {
+    const on = eo3(u(A4 + 1.35 + i * .12, A4 + 1.65 + i * .12, t)) * (i <= iAct ? 1 : 0);
+    s.style.background = on > .05
+      ? `rgba(${ACC_RGB},${(.25 + .75 * on * (i === iAct ? 1 : .45)).toFixed(3)})`
+      : '#1a2130';
+    s.style.transform = `scaleY(${(1 + (i === iAct ? .9 : 0) * on).toFixed(3)})`;
+  });
+
+  // ── Acto 5: por que no 100 ────────────────────────────────────────────────
+  const wIn = eo3(u(A5, A5 + .5, t));
+  const wFuera = u(A6 - .4, A6, t);
+  el('whyT').innerHTML = `¿Por qué no <span>100</span>?`;
+  el('whyT').style.opacity = (wIn * (1 - wFuera)).toFixed(3);
+  el('whyT').style.top = lerp(520, 470, wIn).toFixed(1) + 'px';
+  el('whyRows').style.top = '660px';
+  WR.forEach((d, i) => {
+    const t0 = A5 + .45 + i * .55;
+    const e = eo3(u(t0, t0 + .45, t));
+    d.style.opacity = (e * (1 - wFuera)).toFixed(3);
+    d.style.transform = `translateX(${lerp(-80, 0, e).toFixed(1)}px)`;
+  });
+  const kIn = eo3(u(A5 + 2.25, A5 + 2.85, t));
+  el('riskBox').style.opacity = (kIn * (1 - wFuera)).toFixed(3);
+  el('riskBox').style.top = lerp(1230, 1180, kIn).toFixed(1) + 'px';
+
+  // ── Acto 6: cierre ────────────────────────────────────────────────────────
+  const fIn = eo3(u(A6, A6 + .7, t));
+  el('end').style.opacity = fIn.toFixed(3);
+  el('end').style.top = lerp(660, 610, fIn).toFixed(1) + 'px';
+  el('end').style.transform = `scale(${(lerp(.96, 1, fIn) * lerp(1, 1.02, u(A6 + .7, DUR, t))).toFixed(4)})`;
+
+  el('legal').style.opacity = (u(A5, A5 + .6, t) * (1 - u(A6 - .4, A6, t)) * .9).toFixed(3);
+
+  // golpes de luz: apertura, cierre del numero, corte al acto 5 y cierre
+  el('flash').style.opacity = (
+    pulse(0, .30, t) * .10 +
+    pulse(T_CIERRA, T_CIERRA + .26, t) * .12 +
+    pulse(A5 - .12, A5 + .12, t) * .09 +
+    pulse(A6 - .10, A6 + .14, t) * .08
+  ).toFixed(4);
+}
+
+window.seek = seek;
+window.DUR = DUR;
+window.MARCAS = { A1, A2, A3, A4, A5, A6, T_CIERRA, T_FILA, filas: FR.length };
+seek(0);
+</script>
