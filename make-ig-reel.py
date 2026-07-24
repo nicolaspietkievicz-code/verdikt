@@ -24,7 +24,8 @@ Tres pasos, cada uno en su archivo bajo ig/reel/:
 Hace falta, una sola vez:
   pip install imageio-ffmpeg      (trae un ffmpeg con H.264; el de Playwright no)
   npm install playwright && npx playwright install chromium
-En los runners de GitHub Actions ffmpeg ya viene, asi que alli alcanza Playwright.
+Las dos cosas hacen falta tambien en CI: la imagen de ubuntu-latest no trae
+ffmpeg.
 """
 import datetime
 import importlib.util

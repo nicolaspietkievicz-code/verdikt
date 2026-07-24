@@ -59,12 +59,14 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Instalar Pillow
-        run: pip install pillow
+      # imageio-ffmpeg trae un ffmpeg con H.264 empaquetado. Hace falta: la
+      # imagen de ubuntu-latest ya NO incluye ffmpeg, y el encode del reel moria
+      # despues de renderizar los 600 frames.
+      - name: Instalar Pillow y ffmpeg
+        run: pip install pillow imageio-ffmpeg
 
-      # Para el reel: Chromium renderiza la escena y ffmpeg (ya viene en el
-      # runner) la encodea. --with-deps trae las librerias del sistema que
-      # Chromium necesita en ubuntu headless.
+      # Para el reel: Chromium renderiza la escena. --with-deps trae las
+      # librerias del sistema que Chromium necesita en ubuntu headless.
       - name: Instalar Playwright
         if: ${{ !cancelled() && inputs.reel == '' }}
         run: npm install --no-save playwright && npx playwright install --with-deps chromium
