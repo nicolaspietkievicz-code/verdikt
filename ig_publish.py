@@ -12,8 +12,12 @@ Necesita, en el entorno:
 Cómo conseguir esos dos valores está en SETUP-IG.md. La imagen DEBE estar en una
 URL publica https (la Graph API la baja por URL; no se suben bytes directo).
 
+Publica una imagen sola, un carrusel de hasta 10 (un contenedor hijo por imagen
+mas uno padre que los lista) o un reel.
+
 Uso:
-  python ig_publish.py --image-url https://.../cambios.png --caption-file cap.txt
+  python ig_publish.py --image-url https://.../portada.png --caption-file cap.txt
+  python ig_publish.py --image-urls https://.../1.png,https://.../2.png --caption-file cap.txt
   python ig_publish.py --image-url https://.../x.png --caption "hola" --dry-run
 """
 import argparse
@@ -113,6 +117,52 @@ def publish(image_url: str, caption: str, *, user_id=None, token=None, dry_run=F
     return _publicar(user_id, token, cid)
 
 
+def publish_carousel(image_urls: list, caption: str, *, user_id=None, token=None,
+                     dry_run=False) -> str:
+    """Publica varias imagenes como UN carrusel. Son tres pasos en vez de dos:
+    un contenedor "hijo" por imagen (is_carousel_item), un contenedor padre que
+    los lista, y recien ahi el publish. El caption va en el padre.
+
+    Instagram admite hasta 10 imagenes; si llegan mas, se corta y se avisa."""
+    if len(image_urls) == 1:
+        return publish(image_urls[0], caption, user_id=user_id, token=token, dry_run=dry_run)
+    if len(image_urls) > 10:
+        print(f"::warning::{len(image_urls)} imagenes: se publican las primeras 10.")
+        image_urls = image_urls[:10]
+
+    if dry_run:
+        print(f"[dry-run] NO se publica. Carrusel de {len(image_urls)} imagenes:")
+        for i, u in enumerate(image_urls, 1):
+            print(f"  {i:02d}. {u}")
+        return _aviso_dry("carrusel", f"{len(image_urls)} imagenes", caption, user_id, token)
+    user_id, token = _creds(user_id, token)
+
+    hijos = []
+    for i, url in enumerate(image_urls, 1):
+        cont = _post(f"{user_id}/media", {
+            "image_url": url, "is_carousel_item": "true", "access_token": token,
+        })
+        cid = cont.get("id")
+        if not cid:
+            raise PublishError(f"No se creo el contenedor de la imagen {i}: {cont}")
+        print(f"  hijo {i:02d}/{len(image_urls)}: {cid}")
+        hijos.append(cid)
+
+    padre = _post(f"{user_id}/media", {
+        "media_type": "CAROUSEL",
+        "children": ",".join(hijos),
+        "caption": caption,
+        "access_token": token,
+    })
+    cid = padre.get("id")
+    if not cid:
+        raise PublishError(f"No se creo el contenedor del carrusel: {padre}")
+    print("carrusel:", cid)
+
+    _esperar(cid, token, intentos=40, espera=3)
+    return _publicar(user_id, token, cid)
+
+
 def publish_reel(video_url: str, caption: str, *, user_id=None, token=None,
                  dry_run=False, share_to_feed=True) -> str:
     """Publica un REEL (video vertical). Mismo flujo de dos pasos que la imagen,
@@ -147,6 +197,7 @@ def main():
     ap = argparse.ArgumentParser()
     m = ap.add_mutually_exclusive_group(required=True)
     m.add_argument("--image-url")
+    m.add_argument("--image-urls", help="varias URLs separadas por coma: publica un carrusel")
     m.add_argument("--video-url", help="publica como REEL")
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--caption")
@@ -161,6 +212,9 @@ def main():
 
     if a.video_url:
         mid = publish_reel(a.video_url, caption, dry_run=a.dry_run)
+    elif a.image_urls:
+        urls = [u.strip() for u in a.image_urls.split(",") if u.strip()]
+        mid = publish_carousel(urls, caption, dry_run=a.dry_run)
     else:
         mid = publish(a.image_url, caption, dry_run=a.dry_run)
     print("publicado:", mid)

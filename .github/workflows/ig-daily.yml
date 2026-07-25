@@ -2,9 +2,10 @@
 #
 # Publica dos cosas, con criterios distintos:
 #
-#   cambios de veredicto -> SOLO si hoy hubo. Se genera con datos vivos, se
-#     commitea/pushea a este repo (para que tenga URL publica) y se publica por
-#     la Graph API oficial. Sin cambios, no sale nada (no spamea un post vacio).
+#   cambios de veredicto -> SOLO si hoy hubo. Es un CARRUSEL: caratula, una
+#     placa por activo y cierre. Se genera con datos vivos, se commitea/pushea a
+#     este repo (para que cada imagen tenga URL publica) y se publica por la
+#     Graph API oficial. Sin cambios, no sale nada (no spamea un post vacio).
 #
 #   reel del veredicto -> TODOS los dias, un activo distinto por dia siguiendo la
 #     rotacion de ig/reel/rotacion.py (32 activos, acciones y criptos alternadas).
@@ -118,13 +119,16 @@ jobs:
       # Estos tres son solo lecturas de estado, sin efecto sobre Instagram: van
       # con !cancelled() para que un fallo al generar los cambios no se lleve
       # puesto el camino de la placa, que depende de sus salidas.
+      # latest_images.txt trae una ruta por linea (caratula, un cambio por
+      # placa, cierre). Se pasan como una sola lista separada por comas: el
+      # orden es el del carrusel.
       - name: ¿Hay algo para publicar?
         id: check
         if: ${{ !cancelled() }}
         run: |
-          if [ -f ig/media/latest_image.txt ]; then
+          if [ -s ig/media/latest_images.txt ]; then
             echo "post=yes" >> "$GITHUB_OUTPUT"
-            echo "image=$(cat ig/media/latest_image.txt)" >> "$GITHUB_OUTPUT"
+            echo "images=$(paste -sd, ig/media/latest_images.txt)" >> "$GITHUB_OUTPUT"
           else
             echo "post=no" >> "$GITHUB_OUTPUT"
             echo "Sin cambios de veredicto hoy: no se publica."
@@ -147,13 +151,13 @@ jobs:
             echo "dry=" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Commitear la imagen (le da URL publica)
+      - name: Commitear las imagenes (les da URL publica)
         if: steps.check.outputs.post == 'yes'
         run: |
           git config user.name "verdikt-bot"
           git config user.email "bot@verdikt.finance"
           git add ig/media
-          git commit -m "IG: cambios de veredicto ($(date -u +%F))" || echo "nada que commitear"
+          git commit -m "IG: carrusel de cambios de veredicto ($(date -u +%F))" || echo "nada que commitear"
           git push
 
       - name: Publicar en Instagram
@@ -163,10 +167,14 @@ jobs:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
         run: |
           SHA=$(git rev-parse HEAD)
-          URL="https://raw.githubusercontent.com/${{ github.repository }}/$SHA/${{ steps.check.outputs.image }}"
-          echo "Imagen publica: $URL"
+          BASE="https://raw.githubusercontent.com/${{ github.repository }}/$SHA"
+          URLS=""
+          for IMG in $(echo "${{ steps.check.outputs.images }}" | tr ',' ' '); do
+            URLS="${URLS:+$URLS,}$BASE/$IMG"
+            echo "  $BASE/$IMG"
+          done
           sleep 10 # darle al CDN de GitHub un momento para servir esa SHA
-          python ig_daily.py publish --image-url "$URL" ${{ steps.mode.outputs.dry }}
+          python ig_daily.py publish --image-urls "$URLS" ${{ steps.mode.outputs.dry }}
 
       # El marcador de "ultima fecha publicada" solo sirve si sobrevive a la
       # corrida: sin este commit, manana el repo no sabria que ya se posteo.

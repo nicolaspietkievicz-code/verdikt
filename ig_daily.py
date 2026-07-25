@@ -5,12 +5,15 @@ orden, con el commit/push en el medio para que la imagen tenga URL publica
 antes de publicar):
 
   generate      -> pide los cambios de veredicto del dia; si NO hay, no deja
-                   nada (el workflow lo detecta y no publica). Si hay, dibuja la
-                   imagen fechada en ig/media/, escribe el caption y deja
-                   punteros en ig/media/latest_image.txt y latest_caption.txt.
+                   nada (el workflow lo detecta y no publica). Si hay, dibuja el
+                   CARRUSEL del dia (caratula + una placa por activo + cierre) en
+                   ig/media/cambios-<fecha>/, escribe el caption y deja punteros
+                   en ig/media/latest_images.txt (una ruta por linea) y
+                   latest_caption.txt.
 
-  publish       -> toma --image-url (la URL publica del PNG ya pusheado) y
-                   publica con el caption guardado, via ig_publish.publish().
+  publish       -> toma --image-urls (las URLs publicas de los PNG ya pusheados,
+                   separadas por coma, en orden) y publica el carrusel con el
+                   caption guardado, via ig_publish.publish_carousel().
 
   placa         -> elige la placa evergreen que toca hoy en la rotacion. No
                    dibuja nada: los PNG ya estan commiteados en ig/placas/.
@@ -24,6 +27,7 @@ import datetime
 import glob
 import importlib.util
 import os
+import shutil
 import sys
 
 import ig_publish
@@ -35,7 +39,9 @@ gen = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gen)
 
 MEDIA_DIR = "ig/media"
-KEEP = 14  # cuantas imagenes viejas conservar (para no inflar el repo)
+# Cuantas tandas viejas conservar. Antes eran 14 imagenes sueltas; ahora cada
+# dia son diez placas (~1,5 MB), asi que se guardan menos dias.
+KEEP = 5
 
 # Marcador de la ULTIMA fecha de datos ya publicada. Sin esto, si el snapshot
 # del backend falla o se atrasa, el workflow encuentra los cambios del dia
@@ -93,11 +99,14 @@ def _fecha_larga(dd: str) -> str:
     return dd
 
 
-def build_caption(data: dict) -> str:
-    items = data.get("items", [])
+def build_caption(data: dict, items: list = None) -> str:
+    """`items` son los que entraron al carrusel (ya ordenados). Si no viene, se
+    usan los del payload: el caption tiene que decir lo mismo que las placas."""
+    if items is None:
+        items = data.get("items", [])
     dd = data.get("date", "")
     lines = [f"Hoy cambiaron de veredicto — {_fecha_larga(dd)}", ""]
-    for it in items[:6]:
+    for it in items:
         prev = VERDICT_ES.get(it["prev_verdict"], it["prev_verdict"])
         new = VERDICT_ES.get(it["verdict"], it["verdict"])
         lines.append(f"{it['symbol']}: {prev} → {new} ({it['score']}/100)")
@@ -140,19 +149,23 @@ def _marcar_dia():
 
 
 def _clear_pointers():
-    for f in ("latest_image.txt", "latest_caption.txt", "latest_date.txt"):
+    for f in ("latest_images.txt", "latest_caption.txt", "latest_date.txt"):
         p = os.path.join(MEDIA_DIR, f)
         if os.path.exists(p):
             os.remove(p)
 
 
 def _prune():
-    old = sorted(glob.glob(os.path.join(MEDIA_DIR, "cambios-*.png")))
-    for p in old[:-KEEP]:
-        try:
-            os.remove(p)
-        except OSError:
-            pass
+    """Deja las ultimas KEEP tandas. Cada dia ya no es un PNG sino una carpeta
+    con las diez placas del carrusel, asi que se poda por carpeta."""
+    for p in sorted(glob.glob(os.path.join(MEDIA_DIR, "cambios-*")))[:-KEEP]:
+        if os.path.isdir(p):
+            shutil.rmtree(p, ignore_errors=True)
+        else:
+            try:  # tandas viejas, de cuando el posteo era una sola imagen
+                os.remove(p)
+            except OSError:
+                pass
 
 
 def cmd_generate():
@@ -175,18 +188,19 @@ def cmd_generate():
 
     os.makedirs(MEDIA_DIR, exist_ok=True)
     stamp = dd if len(dd) == 10 else "hoy"
-    img_path = os.path.join(MEDIA_DIR, f"cambios-{stamp}.png")
-    gen.generate(out_path=img_path, data=data)
+    out_dir = os.path.join(MEDIA_DIR, f"cambios-{stamp}")
+    rutas, usados = gen.generate_carousel(out_dir=out_dir, data=data)
 
-    cap = build_caption(data)
-    with open(os.path.join(MEDIA_DIR, "latest_image.txt"), "w", encoding="utf-8") as f:
-        f.write(img_path.replace("\\", "/"))
+    # El caption lista los mismos activos, en el mismo orden que las placas.
+    cap = build_caption(data, usados)
+    with open(os.path.join(MEDIA_DIR, "latest_images.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(r.replace("\\", "/") for r in rutas))
     with open(os.path.join(MEDIA_DIR, "latest_caption.txt"), "w", encoding="utf-8") as f:
         f.write(cap)
     with open(DATE_FILE, "w", encoding="utf-8") as f:
         f.write(dd)
     _prune()
-    print("Imagen:", img_path)
+    print(f"Carrusel de {len(rutas)} placas en {out_dir}")
     print("Caption:\n" + cap)
     return 0
 
@@ -267,14 +281,15 @@ def cmd_publish_placa(image_url: str, dry_run: bool):
     return 0
 
 
-def cmd_publish(image_url: str, dry_run: bool):
+def cmd_publish(image_urls: str, dry_run: bool):
     cap_file = os.path.join(MEDIA_DIR, "latest_caption.txt")
     if not os.path.exists(cap_file):
         print("No hay caption (nada que publicar).")
         return 0
     with open(cap_file, encoding="utf-8") as f:
         caption = f.read()
-    mid = ig_publish.publish(image_url, caption, dry_run=dry_run)
+    urls = [u.strip() for u in image_urls.split(",") if u.strip()]
+    mid = ig_publish.publish_carousel(urls, caption, dry_run=dry_run)
     print("publicado:", mid)
     # Recien despues de que Instagram confirmo, se anota la fecha publicada.
     # En dry-run NO se anota: si no, la corrida real de esa misma noche se
@@ -300,10 +315,14 @@ def main():
     sub.add_parser("generate")
     sub.add_parser("placa")
     sub.add_parser("reel")
-    for nombre in ("publish", "publish-placa"):
-        p = sub.add_parser(nombre)
-        p.add_argument("--image-url", required=True)
-        p.add_argument("--dry-run", action="store_true")
+    # publish lleva las URLs del carrusel (varias, separadas por coma y en
+    # orden); la placa sigue siendo una sola imagen.
+    p = sub.add_parser("publish")
+    p.add_argument("--image-urls", required=True)
+    p.add_argument("--dry-run", action="store_true")
+    p = sub.add_parser("publish-placa")
+    p.add_argument("--image-url", required=True)
+    p.add_argument("--dry-run", action="store_true")
     p = sub.add_parser("publish-reel")
     p.add_argument("--video-url", required=True)
     p.add_argument("--dry-run", action="store_true")
@@ -316,7 +335,7 @@ def main():
     if a.cmd == "reel":
         sys.exit(cmd_reel())
     if a.cmd == "publish":
-        sys.exit(cmd_publish(a.image_url, a.dry_run))
+        sys.exit(cmd_publish(a.image_urls, a.dry_run))
     if a.cmd == "publish-placa":
         sys.exit(cmd_publish_placa(a.image_url, a.dry_run))
     if a.cmd == "publish-reel":
