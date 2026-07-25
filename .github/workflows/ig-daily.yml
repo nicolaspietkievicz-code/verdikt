@@ -30,7 +30,13 @@ name: Instagram diario de Verdikt
 
 on:
   schedule:
+    # Tres intentos por noche, no tres posteos: GitHub atrasa los crons y a
+    # veces los saltea del todo (paso, ya, el 24/07). El primero que llegue
+    # postea y anota el dia en ig/media/last_day.txt; los siguientes ven ese
+    # marcador en el job "guard" y no hacen nada.
     - cron: "20 22 * * *" # 22:20 UTC = 19:20 ART, despues del snapshot (21:10) y sus cambios
+    - cron: "35 23 * * *" # 20:35 ART, reintento
+    - cron: "50 0 * * *" #  21:50 ART, ultimo intento del dia
   workflow_dispatch:
     inputs:
       dry_run:
@@ -50,7 +56,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Portero de los reintentos. Es un job aparte y no un paso mas para no tener
+  # que colgarle la condicion a los quince pasos de abajo: si dice que no, el
+  # job entero ni arranca.
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.g.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: g
+        run: |
+          DIA=$(date -u -d '-3 hours' +%F) # dia en hora argentina
+          echo "Dia ART: $DIA"
+          # A mano siempre corre: si lo disparaste vos, es a proposito.
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "run=yes" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$(cat ig/media/last_day.txt 2>/dev/null)" = "$DIA" ]; then
+            echo "::notice::El posteo del $DIA ya salio: esta corrida no hace nada."
+            echo "run=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=yes" >> "$GITHUB_OUTPUT"
+          fi
+
   post:
+    needs: guard
+    if: needs.guard.outputs.run == 'yes'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -195,7 +228,7 @@ jobs:
           if [ -f ig/media/last_reel.txt ]; then
             git config user.name "verdikt-bot"
             git config user.email "bot@verdikt.finance"
-            git add ig/media/last_reel.txt
+            git add ig/media/last_reel.txt ig/media/last_day.txt
             git commit -m "IG: reel publicado ($(cat ig/media/last_reel.txt))" || echo "sin cambios"
             git push
           fi
@@ -226,7 +259,7 @@ jobs:
           if [ -f ig/media/last_placa.txt ]; then
             git config user.name "verdikt-bot"
             git config user.email "bot@verdikt.finance"
-            git add ig/media/last_placa.txt
+            git add ig/media/last_placa.txt ig/media/last_day.txt
             git commit -m "IG: placa publicada ($(cat ig/media/last_placa.txt))" || echo "sin cambios"
             git push
           fi

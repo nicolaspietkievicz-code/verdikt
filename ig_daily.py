@@ -20,6 +20,7 @@ antes de publicar):
 Asi el generar y el publicar quedan separados por el push (Instagram baja la
 imagen por URL, tiene que estar viva antes)."""
 import argparse
+import datetime
 import glob
 import importlib.util
 import os
@@ -63,6 +64,13 @@ _rot_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ig", "reel
 _rot_spec = importlib.util.spec_from_file_location("rotacion", _rot_path)
 rotacion = importlib.util.module_from_spec(_rot_spec)
 _rot_spec.loader.exec_module(rotacion)
+
+# Dia (hora argentina) en que ya salio el posteo de base. GitHub atrasa y a
+# veces directamente SALTEA los crons, asi que el workflow se agenda tres veces
+# por noche; este marcador es lo que hace que solo la primera que llegue postee
+# y las otras no hagan nada. Va en hora ART y no UTC porque los reintentos
+# cruzan la medianoche UTC y tienen que seguir contando como el mismo dia.
+DAY_FILE = os.path.join(MEDIA_DIR, "last_day.txt")
 
 REEL_LAST_FILE = os.path.join(MEDIA_DIR, "last_reel.txt")
 REEL_ASSET_FILE = os.path.join(MEDIA_DIR, "reel_asset.txt")
@@ -111,6 +119,24 @@ def _read(path: str) -> str:
             return f.read().strip()
     except OSError:
         return ""
+
+
+def dia_art() -> str:
+    """Fecha de hoy en hora argentina (UTC-3), que es el dia que cuenta para la
+    cuenta. El runner corre en UTC: a las 22:20 UTC coincide con la fecha ART,
+    pero un reintento a las 00:50 UTC ya seria "manana" en UTC y tiene que
+    seguir siendo el mismo dia."""
+    return (datetime.datetime.now(datetime.timezone.utc)
+            - datetime.timedelta(hours=3)).strftime("%Y-%m-%d")
+
+
+def _marcar_dia():
+    """Anota que el posteo de base del dia ya salio. Lo lee el paso guard del
+    workflow para que los reintentos de mas tarde no publiquen de nuevo."""
+    dia = dia_art()
+    with open(DAY_FILE, "w", encoding="utf-8") as f:
+        f.write(dia)
+    print("dia marcado como posteado:", dia)
 
 
 def _clear_pointers():
@@ -218,6 +244,7 @@ def cmd_publish_reel(video_url: str, dry_run: bool):
             with open(REEL_LAST_FILE, "w", encoding="utf-8") as f:
                 f.write(asset)
             print("rotacion avanzada a:", asset)
+        _marcar_dia()
     return 0
 
 
@@ -236,6 +263,7 @@ def cmd_publish_placa(image_url: str, dry_run: bool):
             with open(PLACA_LAST_FILE, "w", encoding="utf-8") as f:
                 f.write(nombre)
             print("rotacion avanzada a:", nombre)
+        _marcar_dia()
     return 0
 
 
