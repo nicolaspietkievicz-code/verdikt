@@ -1,0 +1,23 @@
+# Diagnostico a pedido del acceso a Instagram.
+#
+# Para que es: cuando el posteo diario falla con un error de Meta, correr esto a
+# mano y ver en el log DONDE se corta (token, lectura, o creacion de media). No
+# publica nada: el paso 3 crea un contenedor y lo deja sin publicar.
+name: Diagnostico de Instagram
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Consultar la Graph API
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: python ig_diag.py
