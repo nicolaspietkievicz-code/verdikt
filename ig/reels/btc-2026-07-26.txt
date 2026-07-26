@@ -6,7 +6,7 @@
 
 2 en contra: el precio está muy por debajo de su media de 200 días (-13%); deterioro sostenido (-16% en 3 meses).
 
-Qué vigilar: necesita recuperar su media de 200 días (~73916.40) para cambiar el sesgo.
+Qué vigilar: necesita recuperar su media de 200 días (~73916.60) para cambiar el sesgo.
 
 Eso es un veredicto: un número y las razones detrás. Se recalcula todos los días con el cierre, porque el panorama cambia.
 
