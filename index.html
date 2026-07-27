@@ -247,6 +247,44 @@
   .screen-item figcaption b { display: block; font-size: 16px; margin-bottom: 4px; }
   .screen-item figcaption span { font-size: 14.5px; color: var(--dim); }
 
+  /* ---- Dispositivos: la notebook con el teléfono adelante ----
+     La captura de escritorio es DENSA: a menos de ~800px de ancho el texto de
+     la app se vuelve una mancha gris. Por eso la notebook vive en su propia
+     sección a todo el ancho del wrap y no en el hero, donde la columna de la
+     derecha mide 410px. El teléfono se le apoya adelante en la esquina: es lo
+     que cuenta la historia de "la misma app en las dos pantallas". */
+  .devices { position: relative; margin-top: 4px; }
+  .laptop { max-width: 860px; margin: 0 auto; }
+  .laptop-lid {
+    background: #0B0E14; border: 1px solid var(--border);
+    border-radius: 12px 12px 3px 3px; padding: 12px 12px 14px;
+    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6);
+  }
+  .laptop-lid img { display: block; width: 100%; height: auto; border-radius: 3px; }
+  /* La base es más ancha que la tapa (como una notebook de verdad) y lleva la
+     muesca para abrirla. Sin la base, la tapa sola se lee como un monitor. */
+  .laptop-foot {
+    height: 13px; width: 112%; margin-left: -6%;
+    border: 1px solid var(--border); border-top: 0;
+    border-radius: 0 0 13px 13px;
+    background: linear-gradient(#171C25, #0C1017);
+    position: relative;
+  }
+  .laptop-foot::after {
+    content: ""; position: absolute; left: 50%; top: 0; transform: translateX(-50%);
+    width: 92px; height: 5px; border-radius: 0 0 7px 7px; background: #05070C;
+  }
+  .phone-float {
+    position: absolute; right: 0; bottom: -22px;
+    width: 152px; padding: 6px; border-radius: 19px; margin: 0;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.75);
+  }
+  .phone-float img { border-radius: 14px; }
+  .devices-note {
+    text-align: center; color: var(--dim); font-size: 15px;
+    max-width: 54ch; margin: 46px auto 0;
+  }
+
   /* ---- Steps ---- */
   .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; counter-reset: paso; }
   .step { border-left: 2px solid var(--border); padding: 4px 0 4px 22px; }
@@ -323,6 +361,10 @@
     .fineprint { text-align: center; }
     .cards, .steps { grid-template-columns: 1fr; }
     .screens { grid-template-columns: 1fr; gap: 40px; }
+    /* El teléfono se le apoya a la notebook más chico y más adentro: con la
+       tapa ocupando todo el ancho, en el borde quedaba colgando afuera. */
+    .phone-float { width: 104px; right: -6px; bottom: -14px; padding: 4px; border-radius: 14px; }
+    .phone-float img { border-radius: 10px; }
     .scale { grid-template-columns: 1fr 1fr; }
     /* 5 tarjetas en grilla de 2: la última (EVITAR) centrada, no colgada a la izquierda */
     .scale .verdict:last-child { grid-column: 1 / -1; justify-self: center; width: calc(50% - 6px); }
@@ -427,6 +469,29 @@
           </figcaption>
         </figure>
       </div>
+    </div>
+  </section>
+
+  <section style="padding-top: 0;">
+    <div class="wrap">
+      <div class="sec-title">En cualquier pantalla</div>
+      <h2>La misma app, en el teléfono y en la compu</h2>
+      <div class="devices">
+        <div class="laptop">
+          <div class="laptop-lid">
+            <img src="img/desktop-home.webp"
+                 alt="Verdikt abierto en una computadora: el menú al costado, el ranking del día con la curva de cada activo y la columna con el ánimo del mercado, los índices y los cambios de veredicto"
+                 width="1880" height="1175" loading="lazy">
+          </div>
+          <div class="laptop-foot"></div>
+        </div>
+        <div class="phone phone-float">
+          <img src="img/home.png"
+               alt="La misma pantalla de Verdikt en el teléfono"
+               width="390" height="844" loading="lazy">
+        </div>
+      </div>
+      <p class="devices-note">En una pantalla grande no hay que elegir qué mirar: el ranking, los mercados y los cambios de veredicto entran a la vez. Sin instalar nada — es la misma dirección en cualquier navegador.</p>
     </div>
   </section>
 
