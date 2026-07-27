@@ -165,9 +165,6 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
-    /* Los equipos del hero se salen a propósito por el borde derecho; sin esto
-       el desborde agrega una barra de scroll horizontal en toda la página. */
-    overflow-x: hidden;
   }
   a { color: var(--accent); text-decoration: none; }
   .wrap { max-width: 1060px; margin: 0 auto; padding: 0 22px; }
@@ -199,9 +196,10 @@
   /* ---- Hero ---- */
   /* OJO: .hero convive con .wrap en el mismo div y pisa su padding lateral —
      hay que repetir los 22px horizontales acá. */
-  /* Dos columnas casi iguales (antes 1.15/0.85): la derecha ya no lleva un
-     teléfono de 330px sino la notebook, y necesita el lugar. */
-  .hero { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr); gap: 44px; align-items: center; padding: 72px 22px 56px; }
+  /* La derecha lleva la notebook con el teléfono adelante. Un poco más ancha
+     que el 0.85fr de cuando era un teléfono solo, pero no mucho: la idea es
+     que los equipos pesen como pesaba el teléfono, no que se coman el hero. */
+  .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 44px; align-items: center; padding: 72px 22px 56px; }
   .kicker { font-family: var(--mono); font-size: 13px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; margin-bottom: 18px; }
   h1 { font-size: clamp(34px, 5.2vw, 54px); line-height: 1.12; letter-spacing: -0.5px; margin-bottom: 20px; }
   .hero p.lead { font-size: 18px; color: var(--dim); max-width: 46ch; margin-bottom: 30px; }
@@ -216,20 +214,21 @@
   }
   .phone img { display: block; width: 100%; height: auto; border-radius: 21px; }
 
-  /* Los equipos del hero. La notebook mide MÁS que su columna y se sale por el
-     borde derecho de la pantalla, cortada. No es un efecto: la captura de
-     escritorio es densa y adentro de la columna (≈490px) la app se convierte en
-     una mancha gris. Saliéndose entra a 740px, que es donde el contenido se
-     empieza a distinguir. El corte además se lee como "la pantalla sigue". */
+  /* Los equipos del hero, adentro de su columna: nada se sale por el borde.
+     A este tamaño la captura de escritorio no se lee palabra por palabra —y
+     está bien, no es para leerla: la notebook está para decir "esto también
+     corre en la compu". Lo que sí se distingue es la forma de la app: el menú
+     al costado, la tabla del ranking, la columna de contexto. */
   .hero-devices { position: relative; min-width: 0; }
-  .hero-devices .devices { width: 740px; }
+  .hero-devices .devices { width: 100%; }
   .hero-devices .laptop { max-width: none; }
   /* En el hero el teléfono va del lado IZQUIERDO de la notebook. A la derecha
      quedaba partido al medio por el borde de la pantalla —y un teléfono cortado
      se lee como un error, no como un recorte a propósito, que es lo que sí
      funciona con la tapa. De este lado además tira hacia el texto y ata las dos
      columnas. */
-  .hero-devices .phone-float { left: -26px; right: auto; bottom: -26px; }
+  .hero-devices .phone-float { left: -18px; right: auto; bottom: -18px; width: 112px; padding: 4px; border-radius: 14px; }
+  .hero-devices .phone-float img { border-radius: 11px; }
 
   /* ---- Ticker ---- */
   .ticker-shell { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: #07090D; overflow: hidden; }
