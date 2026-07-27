@@ -11,7 +11,7 @@
 # La imagen tiene que estar COMMITEADA (la Graph API la baja por URL pública,
 # no acepta bytes) y se sirve desde raw.githubusercontent.com del commit exacto,
 # igual que el flujo diario.
-name: Instagram: publicar una imagen
+name: "Instagram: publicar una imagen"
 
 on:
   workflow_dispatch:
