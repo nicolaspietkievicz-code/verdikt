@@ -1,0 +1,72 @@
+# Publica UNA imagen suelta en el feed de Instagram, a mano.
+#
+# Existe aparte de ig-daily.yml a propósito: el flujo diario genera y publica
+# el contenido del día y escribe los marcadores de rotación (last_day.txt,
+# last_placa.txt). Si se lo dispara a mano para publicar otra cosa, además de
+# publicar la imagen que uno quiere publica el reel del día y marca el día
+# como hecho, dejando sin efecto los tres intentos programados de esa noche.
+#
+# Este workflow no toca ningún marcador: sube una imagen del repo y nada más.
+#
+# La imagen tiene que estar COMMITEADA (la Graph API la baja por URL pública,
+# no acepta bytes) y se sirve desde raw.githubusercontent.com del commit exacto,
+# igual que el flujo diario.
+name: Instagram: publicar una imagen
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: "Ruta de la imagen en el repo (ej. ig/media/terminal-mundo.png)"
+        required: true
+      caption_file:
+        description: "Ruta del archivo con el texto del posteo"
+        required: true
+      dry_run:
+        description: "Probar sin publicar"
+        type: boolean
+        default: true
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: ¿Existen los archivos?
+        run: |
+          test -f "${{ inputs.image }}" || { echo "No existe ${{ inputs.image }}"; exit 1; }
+          test -f "${{ inputs.caption_file }}" || { echo "No existe ${{ inputs.caption_file }}"; exit 1; }
+          echo "--- texto del posteo ---"
+          cat "${{ inputs.caption_file }}"
+
+      - name: ¿Están los secrets?
+        id: cfg
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: |
+          if [ -n "$IG_USER_ID" ] && [ -n "$IG_ACCESS_TOKEN" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Faltan IG_USER_ID / IG_ACCESS_TOKEN: no se publica."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publicar
+        if: ${{ steps.cfg.outputs.ready == 'true' }}
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: |
+          URL="https://raw.githubusercontent.com/${{ github.repository }}/$(git rev-parse HEAD)/${{ inputs.image }}"
+          echo "Imagen pública: $URL"
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            python ig_publish.py --image-url "$URL" --caption-file "${{ inputs.caption_file }}" --dry-run
+          else
+            python ig_publish.py --image-url "$URL" --caption-file "${{ inputs.caption_file }}"
+          fi
