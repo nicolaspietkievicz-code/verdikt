@@ -20,3 +20,7 @@ ig/media/reel_video.txt
 
 # Worktrees de Claude: repos git anidados, no van al repo.
 .claude/
+# Voz en off del reel: los wav intermedios y los modelos de piper (63 MB cada
+# uno) se regeneran y se bajan, no van al repo.
+ig/reel/voz_tmp/
+ig/reel/voces/
