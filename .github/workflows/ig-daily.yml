@@ -105,6 +105,26 @@ jobs:
         if: ${{ !cancelled() && inputs.reel == '' }}
         run: npm install --no-save playwright && npx playwright install --with-deps chromium
 
+      # Voz en off del reel. El modelo pesa 77 MB: se cachea para no bajarlo
+      # todas las noches. Si algo de esto falla el reel sale igual, con su
+      # musica y sin voz (make-ig-reel.py::narrar es best effort).
+      - name: Cache de la voz
+        if: ${{ !cancelled() && inputs.reel == '' }}
+        uses: actions/cache@v4
+        with:
+          path: ig/reel/voces
+          key: piper-es_ES-sharvard-medium-v1
+
+      - name: Instalar la voz
+        if: ${{ !cancelled() && inputs.reel == '' }}
+        run: |
+          pip install piper-tts
+          if [ ! -f ig/reel/voces/es_ES-sharvard-medium.onnx ]; then
+            python -m piper.download_voices --download-dir ig/reel/voces es_ES-sharvard-medium
+          else
+            echo "la voz ya estaba en cache"
+          fi
+
       - name: Generar el posteo del dia
         run: python ig_daily.py generate
 

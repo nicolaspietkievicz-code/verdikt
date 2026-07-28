@@ -78,6 +78,39 @@ def _prune():
                 pass
 
 
+# Voz elegida el 2026-07-28 escuchando tres candidatas. El nombre del modelo
+# dice "sharvard" y no indica el genero: es una voz MASCULINA, aunque el
+# archivo de prueba se llamaba "mujer" por un error mio al rotularlo.
+VOZ = "es_ES-sharvard-medium"
+
+
+def narrar(d: dict, mp4: str) -> None:
+    """Le agrega la voz en off al reel ya encodeado, pisando el archivo.
+
+    Es BEST EFFORT a proposito: si falta piper, no esta el modelo o la sintesis
+    falla, el reel queda con su musica y se publica igual. Perder la voz es un
+    reel mas pobre; perder el reel es un dia sin posteo."""
+    voces = os.path.join(REEL, "voces")
+    try:
+        _spec_n = importlib.util.spec_from_file_location(
+            "narrar", os.path.join(REEL, "narrar.py"))
+        nar = importlib.util.module_from_spec(_spec_n)
+        _spec_n.loader.exec_module(nar)
+
+        seg = nar.guion(d)
+        pistas = nar.sintetizar(seg, VOZ, voces, os.path.join(REEL, "voz_tmp"))
+        con_voz = mp4 + ".voz.mp4"
+        nar.mezclar(mp4, pistas, con_voz)
+        os.replace(con_voz, mp4)
+        habla = sum(p[2] for p in pistas)
+        print(f"== voz  {len(pistas)} lineas, {habla:.1f}s de habla")
+    except Exception as e:
+        print(f"::warning::sin voz en off ({type(e).__name__}: {e}). "
+              f"El reel sale igual, con su musica.")
+    finally:
+        shutil.rmtree(os.path.join(REEL, "voz_tmp"), ignore_errors=True)
+
+
 def main():
     sym = (sys.argv[1] if len(sys.argv) > 1 else "AAPL").upper()
     clase = sys.argv[2] if len(sys.argv) > 2 else "stock"
@@ -100,6 +133,8 @@ def main():
          "-pix_fmt", "yuv420p",            # sin esto Instagram lo rechaza
          "-c:a", "aac", "-b:a", "160k", "-shortest",
          "-movflags", "+faststart", mp4)
+
+    narrar(d, mp4)
 
     with open(os.path.join(SALIDA, base + ".txt"), "w", encoding="utf-8") as f:
         f.write(bd.caption(d))

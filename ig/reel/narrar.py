@@ -8,7 +8,10 @@ Se deriva de los MISMOS datos que la animacion y el caption, para que las tres
 cosas no puedan contar versiones distintas.
 
   python narrar.py NVDA                      -> escribe el guion y lo lee
-  python narrar.py NVDA --voz es_MX-claude-high --sobre ../reels/nvda-....mp4
+  python narrar.py NVDA --sobre ../reels/nvda-....mp4
+
+La voz es es_ES-sharvard-medium, elegida escuchando tres candidatas el
+2026-07-28. El nombre del modelo no dice el genero: es MASCULINA.
 
 Hace falta:  pip install piper-tts   +   los modelos de voz (se bajan con
 python -m piper.download_voices --download-dir voces <nombre>)
@@ -350,7 +353,7 @@ def main():
     a = ap.parse_args()
 
     if not a.voz:
-        a.voz = {"piper": "es_MX-claude-high",
+        a.voz = {"piper": "es_ES-sharvard-medium",
                  "elevenlabs": "onwK4e9ZLuTAKqWW03F9",   # Daniel, multilingue
                  "azure": "es-MX-JorgeNeural"}[a.motor]
 
