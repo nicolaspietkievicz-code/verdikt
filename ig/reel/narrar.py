@@ -28,6 +28,9 @@ _spec = importlib.util.spec_from_file_location(
 bd = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(bd)
 
+sys.path.insert(0, RAIZ)
+import pronunciacion as pron
+
 # Las mismas marcas que scene.html. Si alla cambian, cambian aca: la voz se
 # desengancha de la imagen en silencio y no hay test que lo agarre.
 A1, A2, A3, A4, A5, A6 = 0.00, 2.10, 5.60, 11.00, 13.70, 17.20
@@ -112,15 +115,28 @@ def _dur_wav(path: str) -> float:
 
 
 def _decir_piper(texto: str, voz: str, data_dir: str, wav: str, velocidad: float) -> None:
-    """TTS offline. Gratis y sin cuenta, pero SOLO habla español: las palabras
-    en ingles las lee con fonetica española ("finance" -> fi-nan-se). Escribirlas
-    como suenan tampoco sirve — se probo y el modelo termina nombrando los
-    acentos. Sirve para probar el pipeline, no para publicar."""
-    subprocess.run(
-        [sys.executable, "-m", "piper", "-m", voz, "--data-dir", data_dir,
-         "--length-scale", str(velocidad), "-f", wav],
-        input=texto, text=True, check=True, encoding="utf-8",
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    """TTS offline, gratis y sin cuenta. Solo habla español: las palabras en
+    ingles hay que escribirlas como suenan (ver INGLESAS).
+
+    EL TEXTO VA POR ARCHIVO, NO POR LA ENTRADA ESTANDAR. En Windows, pasarlo
+    por stdin rompe los caracteres acentuados aunque se declare utf-8: llegan
+    como bytes invalidos y el sintetizador los LEE EN VOZ ALTA como el nombre
+    del simbolo. Medido: "Seilsfors" dura 0,81 s y "Séilsfors" por stdin dura
+    2,61 s — ese segundo y medio de mas es el acento dicho. Por archivo, las
+    dos duran lo mismo. Costo un dia de creer que el problema eran las tildes."""
+    import tempfile
+
+    with tempfile.NamedTemporaryFile("w", suffix=".txt", encoding="utf-8",
+                                     delete=False) as f:
+        f.write(texto)
+        entrada = f.name
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "piper", "-m", voz, "--data-dir", data_dir,
+             "--length-scale", str(velocidad), "-i", entrada, "-f", wav],
+            check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    finally:
+        os.unlink(entrada)
 
 
 def _decir_elevenlabs(texto: str, voz: str, wav: str, velocidad: float) -> None:
@@ -212,11 +228,15 @@ def _marcar_ingles(texto: str) -> str:
 def _decir(texto: str, voz: str, data_dir: str, wav: str, velocidad: float,
            motor: str = "piper") -> float:
     if motor == "elevenlabs":
+        # Multilingue: reconoce solo las palabras en ingles, no hay que
+        # reescribirle nada.
         _decir_elevenlabs(texto, voz, wav, velocidad)
     elif motor == "azure":
         _decir_azure(texto, voz, wav, velocidad)
     else:
-        _decir_piper(texto, voz, data_dir, wav, velocidad)
+        # Piper solo habla español: lo que este en ingles se le pasa escrito
+        # como suena. Lo que se ve en pantalla no cambia, solo lo que se dice.
+        _decir_piper(pron.hablado(texto), voz, data_dir, wav, velocidad)
     return _dur_wav(wav)
 
 
