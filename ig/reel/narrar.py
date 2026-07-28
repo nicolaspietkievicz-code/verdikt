@@ -111,12 +111,112 @@ def _dur_wav(path: str) -> float:
         return w.getnframes() / float(w.getframerate())
 
 
-def _decir(texto: str, voz: str, data_dir: str, wav: str, velocidad: float) -> float:
+def _decir_piper(texto: str, voz: str, data_dir: str, wav: str, velocidad: float) -> None:
+    """TTS offline. Gratis y sin cuenta, pero SOLO habla español: las palabras
+    en ingles las lee con fonetica española ("finance" -> fi-nan-se). Escribirlas
+    como suenan tampoco sirve — se probo y el modelo termina nombrando los
+    acentos. Sirve para probar el pipeline, no para publicar."""
     subprocess.run(
         [sys.executable, "-m", "piper", "-m", voz, "--data-dir", data_dir,
          "--length-scale", str(velocidad), "-f", wav],
         input=texto, text=True, check=True, encoding="utf-8",
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def _decir_elevenlabs(texto: str, voz: str, wav: str, velocidad: float) -> None:
+    """Modelo multilingue: reconoce solo que "finance" o "Goldman Sachs" son
+    inglesas y las pronuncia como corresponde, sin marcarle nada. Por eso es el
+    que mejor le cae a un guion en castellano lleno de nombres en ingles.
+
+    Necesita ELEVENLABS_API_KEY en el entorno. `voz` es el id de la voz."""
+    import json
+    import urllib.request
+
+    clave = os.environ.get("ELEVENLABS_API_KEY")
+    if not clave:
+        sys.exit("Falta ELEVENLABS_API_KEY en el entorno.")
+
+    cuerpo = json.dumps({
+        "text": texto,
+        "model_id": "eleven_multilingual_v2",
+        # speed va de 0.7 a 1.2; nuestro `velocidad` es al reves (menor = mas
+        # rapido, como el length-scale de piper), asi que se invierte.
+        "voice_settings": {"stability": 0.5, "similarity_boost": 0.75,
+                           "speed": round(2.0 - velocidad, 2)},
+    }).encode()
+
+    req = urllib.request.Request(
+        f"https://api.elevenlabs.io/v1/text-to-speech/{voz}?output_format=pcm_22050",
+        data=cuerpo, method="POST",
+        headers={"xi-api-key": clave, "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=120) as r:
+        crudo = r.read()
+
+    # Devuelve PCM pelado; se le pone cabecera wav para poder medirlo igual que
+    # los de piper.
+    with wave.open(wav, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(22050)
+        w.writeframes(crudo)
+
+
+def _decir_azure(texto: str, voz: str, wav: str, velocidad: float) -> None:
+    """Voces neuronales de Azure. Gratis hasta 500 mil caracteres por mes.
+
+    A diferencia de ElevenLabs no adivina el idioma, asi que las palabras en
+    ingles se marcan una por una con <lang>. Es mas trabajo pero se controla
+    exactamente como suena cada cosa."""
+    import urllib.request
+
+    clave = os.environ.get("AZURE_SPEECH_KEY")
+    region = os.environ.get("AZURE_SPEECH_REGION", "brazilsouth")
+    if not clave:
+        sys.exit("Falta AZURE_SPEECH_KEY en el entorno.")
+
+    ssml = (f'<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" '
+            f'xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="es-MX">'
+            f'<voice name="{voz}">'
+            f'<prosody rate="{int((1 / velocidad - 1) * 100):+d}%">'
+            f'{_marcar_ingles(texto)}'
+            f'</prosody></voice></speak>')
+
+    req = urllib.request.Request(
+        f"https://{region}.tts.speech.microsoft.com/cognitiveservices/v1",
+        data=ssml.encode("utf-8"), method="POST",
+        headers={"Ocp-Apim-Subscription-Key": clave,
+                 "Content-Type": "application/ssml+xml",
+                 "X-Microsoft-OutputFormat": "riff-22050hz-16bit-mono-pcm",
+                 "User-Agent": "verdikt"})
+    with urllib.request.urlopen(req, timeout=120) as r:
+        datos = r.read()
+    with open(wav, "wb") as f:
+        f.write(datos)
+
+
+# Palabras del guion que son inglesas y hay que decir como tales. Solo la usa
+# el motor de Azure; ElevenLabs las reconoce solo.
+INGLESAS = ["finance", "Goldman Sachs", "UnitedHealth", "Salesforce",
+            "JPMorgan", "Bank of America", "Home Depot", "Walmart",
+            "Berkshire Hathaway", "Coinbase", "Airbnb", "PayPal"]
+
+
+def _marcar_ingles(texto: str) -> str:
+    for palabra in INGLESAS:
+        if palabra in texto:
+            texto = texto.replace(
+                palabra, f'<lang xml:lang="en-US">{palabra}</lang>')
+    return texto
+
+
+def _decir(texto: str, voz: str, data_dir: str, wav: str, velocidad: float,
+           motor: str = "piper") -> float:
+    if motor == "elevenlabs":
+        _decir_elevenlabs(texto, voz, wav, velocidad)
+    elif motor == "azure":
+        _decir_azure(texto, voz, wav, velocidad)
+    else:
+        _decir_piper(texto, voz, data_dir, wav, velocidad)
     return _dur_wav(wav)
 
 
@@ -126,7 +226,7 @@ VELOCIDADES = [1.0, 0.92, 0.85, 0.82]
 
 
 def sintetizar(seg: list, voz: str, data_dir: str, out_dir: str,
-               velocidad: float = 1.0) -> list:
+               velocidad: float = 1.0, motor: str = "piper") -> list:
     """Un wav por linea, ACOMODADO al hueco que le toca.
 
     Se sintetiza por separado y no todo junto a proposito: asi cada linea cae
@@ -156,7 +256,7 @@ def sintetizar(seg: list, voz: str, data_dir: str, out_dir: str,
             for v in VELOCIDADES:
                 if v > velocidad:
                     continue
-                dur = _decir(texto, voz, data_dir, wav, v)
+                dur = _decir(texto, voz, data_dir, wav, v, motor)
                 if dur <= hueco:
                     break
             else:
@@ -216,13 +316,23 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("simbolo")
     ap.add_argument("clase", nargs="?", default="stock")
-    ap.add_argument("--voz", default="es_MX-claude-high")
+    ap.add_argument("--motor", default="piper",
+                    choices=["piper", "elevenlabs", "azure"],
+                    help="piper: offline y gratis, pero no pronuncia ingles. "
+                         "elevenlabs: multilingue, el que mejor le cae a esto. "
+                         "azure: gratis hasta 500k caracteres, ingles marcado a mano")
+    ap.add_argument("--voz", help="id o nombre de la voz segun el motor")
     ap.add_argument("--voces-dir", default=os.path.join(RAIZ, "voces"))
     ap.add_argument("--velocidad", type=float, default=1.0,
                     help="1.0 normal; menos de 1 habla mas rapido")
     ap.add_argument("--sobre", help="mp4 del reel sobre el que mezclar")
     ap.add_argument("--salida", default="reel-narrado.mp4")
     a = ap.parse_args()
+
+    if not a.voz:
+        a.voz = {"piper": "es_MX-claude-high",
+                 "elevenlabs": "onwK4e9ZLuTAKqWW03F9",   # Daniel, multilingue
+                 "azure": "es-MX-JorgeNeural"}[a.motor]
 
     d = bd.preparar(bd.pedir(a.simbolo.upper(), a.clase))
     seg = guion(d)
@@ -236,7 +346,7 @@ def main():
         return
 
     tmp = os.path.join(RAIZ, "voz_tmp")
-    pistas = sintetizar(seg, a.voz, a.voces_dir, tmp, a.velocidad)
+    pistas = sintetizar(seg, a.voz, a.voces_dir, tmp, a.velocidad, a.motor)
     print()
     for i, (t, _, dur, v) in enumerate(pistas):
         apuro = "" if v == 1.0 else f"  (apurada a {v})"
