@@ -77,16 +77,33 @@ def main() -> int:
         {"image_url": SONDA_IMG, "caption": "sonda de diagnostico", "access_token": token},
         method="POST",
     )
-    _mostrar("3) POST /media (crear contenedor, SIN publicar)", ok3, p3)
+    _mostrar("3) POST /media (crear contenedor de FEED, SIN publicar)", ok3, p3)
+
+    # Las historias usan el MISMO endpoint y el MISMO permiso que el feed
+    # (instagram_content_publish); lo unico que cambia es media_type=STORIES.
+    # Si esto crea contenedor, se pueden publicar historias sin tocar el token.
+    ok4, p4 = _call(
+        f"{user_id}/media",
+        {"media_type": "STORIES", "image_url": SONDA_IMG, "access_token": token},
+        method="POST",
+    )
+    _mostrar("4) POST /media con media_type=STORIES (SIN publicar)", ok4, p4)
 
     print("\n=== LECTURA ===")
     if ok3:
-        print("Se puede publicar: el bloqueo se levanto.")
+        print("Se puede publicar en el feed: el bloqueo se levanto.")
     elif ok1 and ok2:
         print("Token vivo y lectura OK, pero no deja crear media:")
         print("permisos o estado de la app del lado de Meta.")
     else:
         print("Ni la lectura basica anda: la app o el token estan bloqueados.")
+
+    if ok4:
+        print("HISTORIAS: habilitadas con el token actual, no hace falta permiso nuevo.")
+    elif ok3:
+        print("HISTORIAS: el feed anda pero STORIES no. Mirar el error de arriba:")
+        print("si habla de permisos, hace falta pedir uno nuevo; si habla del")
+        print("tipo de cuenta, la cuenta tiene que ser Empresa/Creador.")
     return 0
 
 
