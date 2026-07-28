@@ -1,0 +1,132 @@
+# Historia diaria de Instagram: el animo del mercado del dia, los indices, el
+# top puntuado y cuantos activos cambiaron de veredicto.
+#
+# Va en un workflow APARTE del posteo diario, a proposito. Las historias son
+# otra cosa: duran 24 h, no van a la grilla del perfil y no compiten con el
+# reel. Meterlas en ig-daily.yml las ataba al marcador last_day.txt, con lo
+# cual una noche sin reel se quedaba tambien sin historia.
+#
+# Lo que la API NO permite en una historia (y conviene tener presente antes de
+# pedir cambios): nada de sticker de link, encuesta, preguntas, musica ni
+# menciones. Sale la imagen sola. Por eso el dominio va dibujado en la placa.
+#
+# Igual que el diario, hace falta IG_USER_ID e IG_ACCESS_TOKEN en los secrets
+# del repo; sin ellos genera y commitea la imagen pero saltea el publish.
+name: Historia diaria de Verdikt
+
+on:
+  schedule:
+    # Dos intentos, no dos historias: el guard corta el segundo si el primero
+    # ya publico. GitHub atrasa los crons de forma sistematica (medido: entre 1
+    # y 3,5 h), asi que el primero se pide temprano para que caiga en horario
+    # util aunque llegue tarde.
+    - cron: "30 21 * * *" # 18:30 ART, apenas despues del snapshot de las 18:10
+    - cron: "45 23 * * *" # 20:45 ART, reintento
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Probar sin publicar (dry-run)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write # para pushear la imagen y darle URL publica
+
+concurrency:
+  group: ig-historia
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.g.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: g
+        run: |
+          DIA=$(date -u -d '-3 hours' +%F) # dia en hora argentina
+          echo "Dia ART: $DIA"
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "run=yes" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$(cat ig/media/last_story.txt 2>/dev/null)" = "$DIA" ]; then
+            echo "::notice::La historia del $DIA ya salio: esta corrida no hace nada."
+            echo "run=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=yes" >> "$GITHUB_OUTPUT"
+          fi
+
+  historia:
+    needs: guard
+    if: needs.guard.outputs.run == 'yes'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar Pillow
+        run: pip install pillow
+
+      - name: Modo
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.dry_run }}" = "false" ]; then
+            echo "dry=" >> "$GITHUB_OUTPUT"
+          else
+            echo "dry=--dry-run" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Dibujar la historia con los datos de hoy
+        run: python make-ig-historia.py ig/media/historia-$(date -u -d '-3 hours' +%F).png
+
+      # La Graph API baja la imagen por URL: tiene que estar publica en algun
+      # lado antes de publicar. El repo es publico, asi que se commitea y se usa
+      # la URL cruda del commit exacto.
+      - name: Commitear la imagen para darle URL publica
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ig/media
+          git commit -m "IG: historia del dia ($(date -u -d '-3 hours' +%F))" || echo "nada que commitear"
+          git push
+
+      - name: Publicar la historia
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$IG_USER_ID" ] || [ -z "$IG_ACCESS_TOKEN" ]; then
+            echo "::warning::Faltan los secrets de Instagram: la imagen quedo generada pero no se publica."
+            exit 0
+          fi
+          IMG="ig/media/historia-$(date -u -d '-3 hours' +%F).png"
+          URL="https://raw.githubusercontent.com/${{ github.repository }}/$(git rev-parse HEAD)/$IMG"
+          echo "Imagen: $URL"
+          python ig_publish.py --story-url "$URL" ${{ steps.mode.outputs.dry }}
+
+      # El marcador se escribe RECIEN si Instagram confirmo. Si fallo, el
+      # segundo intento de la noche vuelve a probar en vez de darlo por hecho.
+      - name: Anotar el dia publicado
+        if: success() && steps.mode.outputs.dry == ''
+        run: |
+          date -u -d '-3 hours' +%F > ig/media/last_story.txt
+          git add ig/media/last_story.txt
+          git commit -m "IG: historia publicada ($(cat ig/media/last_story.txt))" || echo "sin cambios"
+          git push
+
+      # Cada historia son ~200 KB commiteados para siempre. Se guardan las
+      # ultimas 7 en el arbol; el historial de git igual crece, como con los
+      # reels.
+      - name: Podar historias viejas
+        if: always()
+        run: |
+          ls -1 ig/media/historia-*.png 2>/dev/null | sort | head -n -7 | xargs -r git rm -q --ignore-unmatch
+          git diff --cached --quiet || {
+            git commit -m "IG: poda de historias viejas"
+            git push
+          }
