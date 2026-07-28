@@ -1,1 +1,1 @@
-stock:NVDA
+crypto:ETH
