@@ -1,28 +1,27 @@
-# Posteo diario del Instagram de Verdikt, 100% automatico.
+# LA IMAGEN DEL DIA del Instagram de Verdikt. Una por dia, siempre.
 #
-# Publica dos cosas, con criterios distintos:
+# Los REELS ya no salen de aca: desde el 2026-07-28 viven en ig-reels.yml, con
+# tres corridas repartidas. Y las HISTORIAS estan en ig-historia.yml. Este
+# workflow se ocupa de una sola cosa, que es la imagen.
 #
-#   cambios de veredicto -> SOLO si hoy hubo. Es un CARRUSEL: caratula, una
-#     placa por activo y cierre. Se genera con datos vivos, se commitea/pushea a
-#     este repo (para que cada imagen tenga URL publica) y se publica por la
-#     Graph API oficial. Sin cambios, no sale nada (no spamea un post vacio).
+# Publica UNA de estas dos, en este orden de prioridad:
 #
-#   reel del veredicto -> TODOS los dias, un activo distinto por dia siguiendo la
-#     rotacion de ig/reel/rotacion.py (32 activos, acciones y criptos alternadas).
-#     Se renderiza en el runner: 600 frames de una escena dibujada, sin capturas
-#     de la app, con los datos del endpoint del producto. Es el posteo de base.
+#   cambios de veredicto -> si hoy hubo. Es un CARRUSEL: caratula, una placa por
+#     activo y cierre. Se genera con datos vivos, se commitea/pushea a este repo
+#     (para que cada imagen tenga URL publica) y se publica por la Graph API.
 #
-#   placa evergreen -> RESPALDO del reel. Si el render falla (endpoint caido,
-#     Playwright, lo que sea) sale la placa que toca, para que el dia no quede
-#     sin nada. Si el reel salio bien, la placa no se publica: dos posteos del
-#     mismo tipo el mismo dia no suman.
+#   placa evergreen -> si hoy NO hubo cambios. Una de las 40 de ig/placas/,
+#     siguiendo su rotacion.
 #
-#   reel -> solo a pedido, pasando la ruta del MP4 al disparar el workflow. No
-#     tiene schedule porque el render corre local y se revisa a mano antes de
-#     subirlo. Cuando se pide un reel NO sale la placa: es un posteo puntual, no
-#     un dia mas de la rotacion. (Vive aca y no en un workflow propio porque
-#     workflow_dispatch solo existe si el archivo esta en la rama default: uno
-#     nuevo no se podria disparar hasta mergearlo, ni probar antes.)
+# OJO CON EL HISTORIAL: hasta el 28/07 la placa era el RESPALDO del reel y solo
+# salia si el reel fallaba. Como el reel casi nunca falla, la placa no se
+# publicaba nunca y la rotacion quedo clavada meses en la misma. Por eso ahora
+# el criterio es "una imagen por dia" y no "por si acaso".
+#
+#   reel -> solo a pedido, pasando la ruta de un MP4 del repo al disparar el
+#     workflow. Quedo aca por comodidad. Ojo: los MP4 de la rotacion ya NO se
+#     commitean (van al release "media"), asi que para usar esto hay que
+#     agregar el archivo a mano con `git add -f`.
 #
 # Para que PUBLIQUE hacen falta dos secrets del repo (Settings -> Secrets and
 # variables -> Actions): IG_USER_ID e IG_ACCESS_TOKEN. Sin ellos genera y
@@ -98,32 +97,6 @@ jobs:
       # despues de renderizar los 600 frames.
       - name: Instalar Pillow y ffmpeg
         run: pip install pillow imageio-ffmpeg
-
-      # Para el reel: Chromium renderiza la escena. --with-deps trae las
-      # librerias del sistema que Chromium necesita en ubuntu headless.
-      - name: Instalar Playwright
-        if: ${{ !cancelled() && inputs.reel == '' }}
-        run: npm install --no-save playwright && npx playwright install --with-deps chromium
-
-      # Voz en off del reel. El modelo pesa 77 MB: se cachea para no bajarlo
-      # todas las noches. Si algo de esto falla el reel sale igual, con su
-      # musica y sin voz (make-ig-reel.py::narrar es best effort).
-      - name: Cache de la voz
-        if: ${{ !cancelled() && inputs.reel == '' }}
-        uses: actions/cache@v4
-        with:
-          path: ig/reel/voces
-          key: piper-es_ES-sharvard-medium-v1
-
-      - name: Instalar la voz
-        if: ${{ !cancelled() && inputs.reel == '' }}
-        run: |
-          pip install piper-tts
-          if [ ! -f ig/reel/voces/es_ES-sharvard-medium.onnx ]; then
-            python -m piper.download_voices --download-dir ig/reel/voces es_ES-sharvard-medium
-          else
-            echo "la voz ya estaba en cache"
-          fi
 
       - name: Generar el posteo del dia
         run: python ig_daily.py generate
@@ -207,65 +180,17 @@ jobs:
             git push
           fi
 
-      # ── Reel del dia ──────────────────────────────────────────────────────
-      - name: Elegir el activo del reel
-        id: asset
-        if: ${{ !cancelled() && inputs.reel == '' }}
-        run: |
-          python ig_daily.py reel
-          echo "asset=$(cat ig/media/reel_asset.txt)" >> "$GITHUB_OUTPUT"
-
-      # continue-on-error a proposito: si el render falla, el dia no se pierde
-      # (mas abajo sale la placa de respaldo) y la rotacion no avanza, asi que
-      # manana se reintenta este mismo activo.
-      - name: Renderizar el reel
-        id: render
-        if: ${{ !cancelled() && inputs.reel == '' }}
-        continue-on-error: true
-        run: |
-          ASSET="${{ steps.asset.outputs.asset }}"
-          python make-ig-reel.py "${ASSET#*:}" "${ASSET%%:*}"
-
-      - name: Commitear el reel (le da URL publica)
-        if: ${{ !cancelled() && inputs.reel == '' && steps.render.outcome == 'success' }}
-        run: |
-          git config user.name "verdikt-bot"
-          git config user.email "bot@verdikt.finance"
-          git add ig/reels
-          git commit -m "IG: reel del dia ($(date -u +%F))" || echo "nada que commitear"
-          git push
-
-      - name: Publicar el reel
-        id: pubreel
-        if: ${{ !cancelled() && inputs.reel == '' && steps.render.outcome == 'success' && steps.cfg.outputs.ready == 'true' }}
-        continue-on-error: true
-        env:
-          IG_USER_ID: ${{ secrets.IG_USER_ID }}
-          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
-        run: |
-          VIDEO=$(cat ig/media/reel_video.txt)
-          URL="https://raw.githubusercontent.com/${{ github.repository }}/$(git rev-parse HEAD)/$VIDEO"
-          echo "Video publico: $URL"
-          curl -sI "$URL" | head -3
-          python ig_daily.py publish-reel --video-url "$URL" ${{ steps.mode.outputs.dry }}
-
-      # La rotacion avanza solo si Instagram confirmo (lo decide publish-reel).
-      - name: Commitear la rotacion del reel
-        if: ${{ !cancelled() && inputs.reel == '' && steps.pubreel.outcome == 'success' }}
-        run: |
-          if [ -f ig/media/last_reel.txt ]; then
-            git config user.name "verdikt-bot"
-            git config user.email "bot@verdikt.finance"
-            git add ig/media/last_reel.txt ig/media/last_day.txt
-            git commit -m "IG: reel publicado ($(cat ig/media/last_reel.txt))" || echo "sin cambios"
-            git push
-          fi
-
-      # ── Placa: respaldo del reel ──────────────────────────────────────────
-      # Solo si el reel NO se publico. Su PNG ya esta en el repo desde hace
-      # commits, asi que no hay nada que pushear ni esperar al CDN.
+      # ── Placa: la imagen del dia cuando no hubo cambios ───────────────────
+      # ANTES era el respaldo del reel y solo salia si el reel fallaba; como el
+      # reel casi nunca falla, en la practica no se publicaba NUNCA y la
+      # rotacion de 40 placas quedo clavada meses en la misma. Desde el
+      # 2026-07-28 el criterio es otro: una imagen por dia, siempre. Si hubo
+      # cambios de veredicto, esa imagen es el carrusel; si no hubo, la placa.
+      #
+      # Su PNG ya esta en el repo desde hace commits, asi que no hay nada que
+      # pushear ni esperar al CDN.
       - name: Publicar la placa del dia
-        if: ${{ !cancelled() && inputs.reel == '' && steps.pubreel.outcome != 'success' && steps.cfg.outputs.ready == 'true' }}
+        if: ${{ !cancelled() && inputs.reel == '' && steps.check.outputs.post != 'yes' && steps.cfg.outputs.ready == 'true' }}
         env:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
@@ -282,7 +207,7 @@ jobs:
       # Igual que el marcador de los cambios: sin este commit la rotacion no
       # avanza y manana volveria a tocar la misma placa.
       - name: Commitear la rotacion de la placa
-        if: ${{ !cancelled() && inputs.reel == '' && steps.pubreel.outcome != 'success' && steps.cfg.outputs.ready == 'true' }}
+        if: ${{ !cancelled() && inputs.reel == '' && steps.check.outputs.post != 'yes' && steps.cfg.outputs.ready == 'true' }}
         run: |
           if [ -f ig/media/last_placa.txt ]; then
             git config user.name "verdikt-bot"

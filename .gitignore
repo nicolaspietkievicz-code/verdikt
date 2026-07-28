@@ -24,3 +24,8 @@ ig/media/reel_video.txt
 # uno) se regeneran y se bajan, no van al repo.
 ig/reel/voz_tmp/
 ig/reel/voces/
+# Los MP4 de los reels ya no se commitean: van como adjuntos del release
+# "media". Cada uno pesa ~3 MB y un commit no se deshace sin reescribir el
+# historial; un adjunto se borra de verdad. Los .txt de caption si quedan, que
+# pesan nada y sirven de registro de que se dijo cada dia.
+ig/reels/*.mp4
