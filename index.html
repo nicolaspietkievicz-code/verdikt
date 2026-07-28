@@ -156,6 +156,15 @@
     --caution: #E08A3C;
     --avoid: #E0526B;
     --mono: ui-monospace, Consolas, "Cascadia Mono", Menlo, monospace;
+
+    /* Metales de los equipos del hero. Van fuera de la paleta de marca a
+       proposito: representan aluminio y titanio, no interfaz. Son CLAROS
+       porque sobre el fondo #050608 un equipo gris oscuro no tiene silueta
+       —se probó y desaparecia. */
+    --met-dark: #4A4E54;
+    --met-body: #7C8188;
+    --met-edge: #A8ADB4;
+    --met-lit:  #DDE1E6;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { scroll-behavior: smooth; }
@@ -207,12 +216,43 @@
   .cta-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
   .fineprint { font-size: 13.5px; color: var(--dim); font-family: var(--mono); }
 
+  /* iPhone. Todas las medidas salen de --w para que el MISMO marco sirva a
+     104px colgado del hero y a 280px en la galeria sin deformarse: en el
+     equipo real el marco mide ~3% del ancho y la esquina ~20%. Cambiar el
+     tamano es cambiar --w y nada mas. */
   .phone {
-    background: #0B0E14; border: 1px solid var(--border); border-radius: 30px;
-    padding: 10px; max-width: 330px; margin: 0 auto;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+    --w: 330px;
+    position: relative; width: var(--w); max-width: 100%; margin: 0 auto;
+    padding: calc(var(--w) * 0.030);
+    border-radius: calc(var(--w) * 0.205);
+    background: linear-gradient(148deg,
+      var(--met-lit) 0%, var(--met-edge) 18%, var(--met-body) 44%,
+      var(--met-edge) 62%, var(--met-lit) 78%, var(--met-body) 100%);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.3),
+      0 24px 60px rgba(0, 0, 0, 0.7);
   }
-  .phone img { display: block; width: 100%; height: auto; border-radius: 21px; }
+  .phone-screen {
+    position: relative; overflow: hidden; background: #000;
+    border-radius: calc(var(--w) * 0.178);
+  }
+  .phone-screen img { display: block; width: 100%; height: auto; }
+  /* La isla dinamica sobre una app casi negra no se ve: el aro tenue es lo
+     que la vuelve legible sin inventar cromo que el equipo no tiene. */
+  .phone-island {
+    position: absolute; top: 1.5%; left: 50%; transform: translateX(-50%);
+    z-index: 2; width: 31%; height: calc(var(--w) * 0.083);
+    background: #000; border-radius: 99px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.11);
+  }
+  .phone-btn {
+    position: absolute; width: calc(var(--w) * 0.019); border-radius: 2px;
+    background: linear-gradient(90deg, var(--met-lit), var(--met-body));
+  }
+  .phone-btn.act    { left: calc(var(--w) * -0.012); top: 15%; height: 4%; }
+  .phone-btn.vol-up { left: calc(var(--w) * -0.012); top: 22%; height: 7%; }
+  .phone-btn.vol-dn { left: calc(var(--w) * -0.012); top: 31%; height: 7%; }
+  .phone-btn.pwr    { right: calc(var(--w) * -0.012); top: 24%; height: 11%; }
 
   /* Los equipos del hero, adentro de su columna: nada se sale por el borde.
      A este tamaño la captura de escritorio no se lee palabra por palabra —y
@@ -227,8 +267,11 @@
      se lee como un error, no como un recorte a propósito, que es lo que sí
      funciona con la tapa. De este lado además tira hacia el texto y ata las dos
      columnas. */
-  .hero-devices .phone-float { left: -18px; right: auto; bottom: -18px; width: 112px; padding: 4px; border-radius: 14px; }
-  .hero-devices .phone-float img { border-radius: 11px; }
+  /* 96px no es un número elegido a ojo: un iPhone al lado de una MacBook de
+     14" mide 0,23 de su ancho, y la tapa acá cae en 437px. Con marcos
+     genéricos la escala no importaba; con equipos reconocibles, el tamaño
+     equivocado es lo primero que delata que el mockup es falso. */
+  .hero-devices .phone-float { left: -18px; right: auto; bottom: -18px; --w: 96px; }
 
   /* ---- Ticker ---- */
   .ticker-shell { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: #07090D; overflow: hidden; }
@@ -261,7 +304,7 @@
 
   /* ---- Screens ---- */
   .screens { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; align-items: start; }
-  .screen-item .phone { max-width: 280px; }
+  .screen-item .phone { --w: 280px; }
   .screen-item figcaption { text-align: center; margin-top: 18px; }
   .screen-item figcaption b { display: block; font-size: 16px; margin-bottom: 4px; }
   .screen-item figcaption span { font-size: 14.5px; color: var(--dim); }
@@ -273,32 +316,67 @@
      derecha mide 410px. El teléfono se le apoya adelante en la esquina: es lo
      que cuenta la historia de "la misma app en las dos pantallas". */
   .devices { position: relative; margin-top: 4px; }
-  .laptop { max-width: 860px; margin: 0 auto; }
+  /* La notebook es fluida (llena la columna del hero), asi que sus medidas
+     no pueden salir de un pixelaje fijo: cqw = 1% del ancho de .laptop. */
+  .laptop { container-type: inline-size; max-width: 860px; margin: 0 auto; }
   .laptop-lid {
-    background: #0B0E14; border: 1px solid var(--border);
-    border-radius: 12px 12px 3px 3px; padding: 12px 12px 14px;
-    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6);
+    position: relative;
+    border-radius: 2.3cqw 2.3cqw 0.8cqw 0.8cqw;
+    padding: 1.3cqw 1.3cqw 1.5cqw;
+    background: linear-gradient(158deg,
+      var(--met-lit) 0%, var(--met-edge) 8%, var(--met-body) 26%,
+      var(--met-dark) 52%, var(--met-body) 76%, var(--met-edge) 93%,
+      var(--met-lit) 100%);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.45),
+      0 34px 70px -20px rgba(0, 0, 0, 0.95);
   }
-  .laptop-lid img { display: block; width: 100%; height: auto; border-radius: 3px; }
+  .laptop-screen {
+    position: relative; overflow: hidden; background: #000;
+    border-radius: 0.6cqw;
+  }
+  .laptop-screen img { display: block; width: 100%; height: auto; }
+  /* La muesca baja DESDE el bisel hacia la pantalla, que es lo que hace en el
+     equipo real. */
+  .laptop-notch {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    z-index: 2; width: 14%; height: 1.8cqw;
+    background: #000; border-radius: 0 0 1.1cqw 1.1cqw;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.09);
+  }
+  /* Reflejo del vidrio: una sola diagonal muy tenue. Mas que esto y parece un
+     render de stock. */
+  .laptop-screen::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(102deg,
+      rgba(255, 255, 255, 0.055) 0 30%, rgba(255, 255, 255, 0) 31%);
+  }
   /* La base es más ancha que la tapa (como una notebook de verdad) y lleva la
      muesca para abrirla. Sin la base, la tapa sola se lee como un monitor. */
   .laptop-foot {
-    height: 13px; width: 112%; margin-left: -6%;
-    border: 1px solid var(--border); border-top: 0;
-    border-radius: 0 0 13px 13px;
-    background: linear-gradient(#171C25, #0C1017);
     position: relative;
+    height: 2.3cqw; width: 113%; margin-left: -6.5%;
+    border-radius: 0 0 1.9cqw 1.9cqw;
+    background: linear-gradient(var(--met-lit) 0%, var(--met-edge) 22%,
+                                var(--met-body) 55%, var(--met-dark) 100%);
+    box-shadow: 0 22px 30px -16px rgba(0, 0, 0, 0.95);
   }
   .laptop-foot::after {
     content: ""; position: absolute; left: 50%; top: 0; transform: translateX(-50%);
-    width: 92px; height: 5px; border-radius: 0 0 7px 7px; background: #05070C;
+    width: 15%; height: 0.8cqw; border-radius: 0 0 1.3cqw 1.3cqw; background: #08090A;
   }
+  /* OJO: acá NO va width/padding/border-radius. Esas tres las calcula .phone a
+     partir de --w, y como esta regla aparece después le ganaba por orden de
+     aparición: el teléfono quedaba clavado en 152px y el marco deformado.
+     Acá sólo se lo posiciona. La sombra repite el filo interior porque
+     box-shadow reemplaza, no suma: sin el inset se perdía el canto metálico. */
   .phone-float {
-    position: absolute; right: 0; bottom: -22px;
-    width: 152px; padding: 6px; border-radius: 19px; margin: 0;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.75);
+    position: absolute; right: 0; bottom: -22px; margin: 0;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.3),
+      0 18px 40px rgba(0, 0, 0, 0.85);
   }
-  .phone-float img { border-radius: 14px; }
   .devices-note {
     text-align: center; color: var(--dim); font-size: 15px;
     max-width: 54ch; margin: 46px auto 0;
@@ -379,16 +457,18 @@
        entera en el ancho de la columna, y el teléfono se mete para adentro —
        colgando afuera lo cortaba el borde de la pantalla. */
     .hero-devices .devices { width: 100%; }
-    .hero-devices .phone-float { left: 0; width: 120px; }
+    /* Apilada, la tapa pasa a ocupar el ancho entero (~352px), así que el
+       teléfono tiene que achicarse con ella para no romper la proporción. */
+    .hero-devices .phone-float { left: 0; --w: 82px; }
     .hero p.lead { margin-left: auto; margin-right: auto; }
     .cta-row { justify-content: center; }
     .fineprint { text-align: center; }
     .cards, .steps { grid-template-columns: 1fr; }
     .screens { grid-template-columns: 1fr; gap: 40px; }
-    /* El teléfono se le apoya a la notebook más chico y más adentro: con la
-       tapa ocupando todo el ancho, en el borde quedaba colgando afuera. */
-    .phone-float { width: 104px; right: -6px; bottom: -14px; padding: 4px; border-radius: 14px; }
-    .phone-float img { border-radius: 10px; }
+    /* (Acá vivía una regla `.phone-float` suelta que nunca se aplicaba: la de
+       arriba, `.hero-devices .phone-float`, le gana por especificidad y las
+       media queries no suman. Se sacó para que no confunda al próximo que
+       venga a cambiar el tamaño y no vea ningún efecto.) */
     .scale { grid-template-columns: 1fr 1fr; }
     /* 5 tarjetas en grilla de 2: la última (EVITAR) centrada, no colgada a la izquierda */
     .scale .verdict:last-child { grid-column: 1 / -1; justify-self: center; width: calc(50% - 6px); }
@@ -422,16 +502,26 @@
       <div class="devices">
         <div class="laptop">
           <div class="laptop-lid">
-            <img src="img/desktop-home.webp"
-                 alt="Verdikt abierto en una computadora: el menú al costado, el ranking del día con la curva de cada activo y la columna con el ánimo del mercado, los índices y los cambios de veredicto"
-                 width="1880" height="1175" fetchpriority="high">
+            <div class="laptop-screen">
+              <div class="laptop-notch"></div>
+              <img src="img/desktop-home.webp"
+                   alt="Verdikt abierto en una computadora: el menú al costado, el ranking del día con la curva de cada activo y la columna con el ánimo del mercado, los índices y los cambios de veredicto"
+                   width="1880" height="1175" fetchpriority="high">
+            </div>
           </div>
           <div class="laptop-foot"></div>
         </div>
         <div class="phone phone-float">
-          <img src="img/home.png"
-               alt="La misma pantalla principal de Verdikt en el teléfono: el ranking del día con el veredicto y el puntaje de cada activo"
-               width="390" height="844">
+          <span class="phone-btn act"></span>
+          <span class="phone-btn vol-up"></span>
+          <span class="phone-btn vol-dn"></span>
+          <span class="phone-btn pwr"></span>
+          <div class="phone-screen">
+            <div class="phone-island"></div>
+            <img src="img/home.png"
+                 alt="La misma pantalla principal de Verdikt en el teléfono: el ranking del día con el veredicto y el puntaje de cada activo"
+                 width="390" height="844">
+          </div>
         </div>
       </div>
     </div>
@@ -486,21 +576,48 @@
       <h2>Capturas reales, datos reales</h2>
       <div class="screens">
         <figure class="screen-item">
-          <div class="phone"><img src="img/detalle-btc.png" alt="Análisis de Bitcoin en Verdikt: puntaje, veredicto, gráfico de 6 meses y razones" width="390" height="844" loading="lazy"></div>
+          <div class="phone">
+          <span class="phone-btn act"></span>
+          <span class="phone-btn vol-up"></span>
+          <span class="phone-btn vol-dn"></span>
+          <span class="phone-btn pwr"></span>
+          <div class="phone-screen">
+            <div class="phone-island"></div>
+            <img src="img/detalle-btc.png" alt="Análisis de Bitcoin en Verdikt: puntaje, veredicto, gráfico de 6 meses y razones" width="390" height="844" loading="lazy">
+          </div>
+        </div>
           <figcaption>
             <b>Cada veredicto viene con sus porqués</b>
             <span>Gráfico de 6 meses con la media de 200 días, y la lista de señales a favor y en contra. Si el veredicto es CAUTELA, sabés exactamente por qué.</span>
           </figcaption>
         </figure>
         <figure class="screen-item">
-          <div class="phone"><img src="img/detalle-nvda.png" alt="Análisis de NVIDIA en Verdikt con precio del CEDEAR en pesos, ratio y dólar CCL" width="390" height="844" loading="lazy"></div>
+          <div class="phone">
+          <span class="phone-btn act"></span>
+          <span class="phone-btn vol-up"></span>
+          <span class="phone-btn vol-dn"></span>
+          <span class="phone-btn pwr"></span>
+          <div class="phone-screen">
+            <div class="phone-island"></div>
+            <img src="img/detalle-nvda.png" alt="Análisis de NVIDIA en Verdikt con precio del CEDEAR en pesos, ratio y dólar CCL" width="390" height="844" loading="lazy">
+          </div>
+        </div>
           <figcaption>
             <b>CEDEARs sin hacer cuentas</b>
             <span>El precio de mercado en pesos, el ratio de conversión y el dólar CCL del día, al lado del análisis de la acción. Nadie más te lo muestra junto.</span>
           </figcaption>
         </figure>
         <figure class="screen-item">
-          <div class="phone"><img src="img/terminal.png" alt="Terminal de Verdikt: titulares del mercado en vivo, traducidos al español, con alertas FLASH de alto impacto" width="390" height="844" loading="lazy"></div>
+          <div class="phone">
+          <span class="phone-btn act"></span>
+          <span class="phone-btn vol-up"></span>
+          <span class="phone-btn vol-dn"></span>
+          <span class="phone-btn pwr"></span>
+          <div class="phone-screen">
+            <div class="phone-island"></div>
+            <img src="img/terminal.png" alt="Terminal de Verdikt: titulares del mercado en vivo, traducidos al español, con alertas FLASH de alto impacto" width="390" height="844" loading="lazy">
+          </div>
+        </div>
           <figcaption>
             <b>La terminal de titulares, en tu bolsillo</b>
             <span>Lo que mueve el mercado ahora mismo (bancos centrales, geopolítica, shocks) en un feed en vivo traducido al español. Los de alto impacto saltan marcados como FLASH.</span>
