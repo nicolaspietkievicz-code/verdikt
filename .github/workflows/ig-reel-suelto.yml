@@ -1,0 +1,71 @@
+# Publica UN reel puntual, a mano, desde un adjunto del release "media".
+#
+# Para que: la rotacion diaria la maneja ig-reels.yml. Esto es para las piezas
+# de una sola vez —un trailer, un anuncio— que se renderizan en la maquina y se
+# revisan antes de subirlas.
+#
+# Va aparte de ig-daily.yml y de ig-reels.yml A PROPOSITO: disparar cualquiera
+# de esos dos a mano toca sus marcadores y les arruina los intentos
+# programados de esa noche. Este no escribe ningun marcador ni avanza ninguna
+# rotacion.
+#
+# Como se usa:
+#   1. Subir el MP4 al release:
+#        gh release upload media video.mp4 --clobber
+#   2. Disparar este workflow con el nombre del archivo y el texto del pie.
+name: Publicar un reel suelto
+
+on:
+  workflow_dispatch:
+    inputs:
+      archivo:
+        description: "Nombre del adjunto en el release media (ej: trailer.mp4)"
+        required: true
+      caption_file:
+        description: "Ruta del archivo de caption en el repo"
+        required: true
+        default: "ig/captions/trailer.txt"
+      dry_run:
+        description: "Probar sin publicar"
+        type: boolean
+        default: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Comprobar que el video existe
+        run: |
+          URL="https://github.com/${{ github.repository }}/releases/download/media/${{ inputs.archivo }}"
+          echo "Video: $URL"
+          # Se comprueba ANTES de hablar con Meta: un 404 deja el contenedor en
+          # ERROR con un mensaje que no explica nada.
+          CODIGO=$(curl -sIL -o /dev/null -w '%{http_code}' --max-time 90 "$URL")
+          if [ "$CODIGO" != "200" ]; then
+            echo "::error::El adjunto no responde 200 (dio $CODIGO). ¿Lo subiste al release?"
+            exit 1
+          fi
+          echo "url=$URL" >> "$GITHUB_ENV"
+
+      - name: Comprobar que el caption existe
+        run: |
+          if [ ! -f "${{ inputs.caption_file }}" ]; then
+            echo "::error::No existe ${{ inputs.caption_file }}"
+            exit 1
+          fi
+          head -3 "${{ inputs.caption_file }}"
+
+      - name: Publicar
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: |
+          DRY=""
+          [ "${{ inputs.dry_run }}" = "true" ] && DRY="--dry-run"
+          python ig_publish.py --video-url "$url" \
+            --caption-file "${{ inputs.caption_file }}" $DRY
