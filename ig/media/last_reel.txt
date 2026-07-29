@@ -1,1 +1,1 @@
-stock:NVDA
+stock:AMZN
