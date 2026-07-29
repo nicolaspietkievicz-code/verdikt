@@ -1,1 +1,1 @@
-stock:AMZN
+crypto:SOL
