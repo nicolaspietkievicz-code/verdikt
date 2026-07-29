@@ -1,1 +1,1 @@
-crypto:SOL
+stock:GOOGL
