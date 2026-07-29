@@ -336,7 +336,8 @@
     position: relative; overflow: hidden; background: #000;
     border-radius: 0.6cqw;
   }
-  .laptop-screen img { display: block; width: 100%; height: auto; }
+  .laptop-screen img,
+  .laptop-screen video { display: block; width: 100%; height: auto; }
   /* La muesca baja DESDE el bisel hacia la pantalla, que es lo que hace en el
      equipo real. */
   .laptop-notch {
@@ -504,9 +505,17 @@
           <div class="laptop-lid">
             <div class="laptop-screen">
               <div class="laptop-notch"></div>
-              <img src="img/desktop-home.webp"
-                   alt="Verdikt abierto en una computadora: el menú al costado, el ranking del día con la curva de cada activo y la columna con el ánimo del mercado, los índices y los cambios de veredicto"
-                   width="1880" height="1175" fetchpriority="high">
+              <!-- El hero muestra la Terminal ANDANDO, no una captura: 14 s en
+                   bucle, mudo, 1 MB. No es un recorte del reel de Instagram —
+                   ése tiene las frases quemadas y termina en negro, y en bucle
+                   apagaría la página en cada vuelta. El póster es el primer
+                   frame, así la página pinta algo antes de que baje el video.
+                   La captura vieja sigue en img/desktop-home.webp por si hay
+                   que volver atrás. -->
+              <video src="img/terminal-loop.mp4" poster="img/terminal-loop.jpg"
+                     width="1280" height="720"
+                     autoplay muted loop playsinline preload="metadata"
+                     aria-label="La Terminal de Verdikt funcionando: titulares del mercado entrando en vivo, el tablero de riesgo con sus semáforos, los focos del wire y el gráfico del Brent"></video>
             </div>
           </div>
           <div class="laptop-foot"></div>
@@ -753,6 +762,19 @@
 </footer>
 
 <script>
+  // Quien pidió menos movimiento en su sistema no debería recibir un video
+  // reproduciéndose solo. CSS no puede frenar un autoplay, así que se frena
+  // acá y queda el póster fijo, que muestra exactamente lo mismo.
+  (function () {
+    if (!window.matchMedia) return;
+    if (!matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    document.querySelectorAll("video[autoplay]").forEach(function (v) {
+      v.autoplay = false;
+      v.removeAttribute("autoplay");
+      v.pause();
+    });
+  })();
+
   // Cinta EN VIVO de subas y bajas del día (acciones de Wall St + Argentina),
   // tomada de la app. Se mezclan ganadoras y perdedoras a propósito para que
   // siempre haya verdes y rojos (si solo tomáramos "los que más se movieron",
