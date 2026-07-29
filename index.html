@@ -309,6 +309,13 @@
   .screen-item figcaption b { display: block; font-size: 16px; margin-bottom: 4px; }
   .screen-item figcaption span { font-size: 14.5px; color: var(--dim); }
 
+  /* La notebook de la sección de capturas: va debajo de la grilla de teléfonos
+     y a su propio ancho, porque es 16:9 y la interfaz de escritorio es densa. */
+  .screen-wide { margin-top: 56px; }
+  .screen-wide figcaption { text-align: center; margin: 22px auto 0; max-width: 620px; }
+  .screen-wide figcaption b { display: block; font-size: 16px; margin-bottom: 4px; }
+  .screen-wide figcaption span { font-size: 14.5px; color: var(--dim); }
+
   /* ---- Dispositivos: la notebook con el teléfono adelante ----
      La captura de escritorio es DENSA: a menos de ~800px de ancho el texto de
      la app se vuelve una mancha gris. Por eso la notebook vive en su propia
@@ -336,7 +343,9 @@
     position: relative; overflow: hidden; background: #000;
     border-radius: 0.6cqw;
   }
-  .laptop-screen img,
+  .laptop-screen img { display: block; width: 100%; height: auto; }
+  /* El video de la terminal es 16:9 y la captura del hero no: cada uno manda su
+     propia altura y la tapa se adapta sola. */
   .laptop-screen video { display: block; width: 100%; height: auto; }
   /* La muesca baja DESDE el bisel hacia la pantalla, que es lo que hace en el
      equipo real. */
@@ -505,17 +514,9 @@
           <div class="laptop-lid">
             <div class="laptop-screen">
               <div class="laptop-notch"></div>
-              <!-- El hero muestra la Terminal ANDANDO, no una captura: 14 s en
-                   bucle, mudo, 1 MB. No es un recorte del reel de Instagram —
-                   ése tiene las frases quemadas y termina en negro, y en bucle
-                   apagaría la página en cada vuelta. El póster es el primer
-                   frame, así la página pinta algo antes de que baje el video.
-                   La captura vieja sigue en img/desktop-home.webp por si hay
-                   que volver atrás. -->
-              <video src="img/terminal-loop.mp4" poster="img/terminal-loop.jpg"
-                     width="1280" height="720"
-                     autoplay muted loop playsinline preload="metadata"
-                     aria-label="La Terminal de Verdikt funcionando: titulares del mercado entrando en vivo, el tablero de riesgo con sus semáforos, los focos del wire y el gráfico del Brent"></video>
+              <img src="img/desktop-home.webp"
+                   alt="Verdikt abierto en una computadora: el menú al costado, el ranking del día con la curva de cada activo y la columna con el ánimo del mercado, los índices y los cambios de veredicto"
+                   width="1880" height="1175" fetchpriority="high">
             </div>
           </div>
           <div class="laptop-foot"></div>
@@ -633,6 +634,37 @@
           </figcaption>
         </figure>
       </div>
+
+      <!-- La Terminal de escritorio, ANDANDO. Va acá abajo y no en la grilla de
+           teléfonos porque es 16:9 y necesita el ancho entero: como dice el
+           comentario de .laptop más arriba, abajo de ~800px el texto de la app
+           se vuelve una mancha gris.
+
+           Es video y no GIF: un GIF de 14 s a 1280x720 pesaría decenas de megas
+           y sus 256 colores harían bandas sobre los negros de la interfaz. Este
+           mp4 pesa 1 MB. Tampoco es un recorte del reel de Instagram —ése tiene
+           las frases quemadas y termina en negro, y en bucle apagaría la página
+           en cada vuelta—: es un render aparte de la misma escena, sin textos
+           ni cierre. El póster es el primer frame, así la sección pinta algo
+           antes de que baje el video. -->
+      <figure class="screen-wide">
+        <div class="laptop">
+          <div class="laptop-lid">
+            <div class="laptop-screen">
+              <div class="laptop-notch"></div>
+              <video src="img/terminal-loop.mp4" poster="img/terminal-loop.jpg"
+                     width="1280" height="720"
+                     autoplay muted loop playsinline preload="none"
+                     aria-label="La Terminal de Verdikt funcionando en una computadora: titulares del mercado entrando en vivo, el tablero de riesgo con sus semáforos, los focos del wire y el gráfico del Brent"></video>
+            </div>
+          </div>
+          <div class="laptop-foot"></div>
+        </div>
+        <figcaption>
+          <b>Y en la computadora, la terminal entera</b>
+          <span>En una pantalla grande el feed queda a la izquierda y el contexto al lado: el tablero de riesgo, los focos del wire, el dólar y el Brent con sus umbrales de tensión. Esto es la app funcionando de verdad, no un montaje.</span>
+        </figcaption>
+      </figure>
     </div>
   </section>
 
