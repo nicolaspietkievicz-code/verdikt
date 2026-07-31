@@ -1,1 +1,1 @@
-stock:MELI
+crypto:XRP
