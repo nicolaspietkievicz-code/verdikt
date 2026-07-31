@@ -1,1 +1,1 @@
-crypto:BNB
+stock:TSLA
