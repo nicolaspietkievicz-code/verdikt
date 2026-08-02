@@ -1,1 +1,1 @@
-crypto:ADA
+stock:JPM
