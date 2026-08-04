@@ -1,1 +1,1 @@
-stock:MCD
+crypto:AVAX
