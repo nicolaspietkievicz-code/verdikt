@@ -1,1 +1,1 @@
-stock:V
+stock:MCD
