@@ -1,1 +1,1 @@
-crypto:AVAX
+stock:PYPL
