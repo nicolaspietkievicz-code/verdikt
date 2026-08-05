@@ -1,1 +1,1 @@
-crypto:MATIC
+stock:AMD
