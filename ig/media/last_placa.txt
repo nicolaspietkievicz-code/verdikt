@@ -1,1 +1,1 @@
-riesgo-beneficio
+precio-valor
