@@ -1,1 +1,1 @@
-stock:AVGO
+crypto:MATIC
