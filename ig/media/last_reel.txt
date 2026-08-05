@@ -1,1 +1,1 @@
-stock:PYPL
+stock:AVGO
