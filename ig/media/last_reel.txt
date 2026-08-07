@@ -1,1 +1,1 @@
-stock:MU
+stock:QCOM
