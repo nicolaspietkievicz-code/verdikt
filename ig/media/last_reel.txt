@@ -1,1 +1,1 @@
-stock:INTC
+crypto:LINK
