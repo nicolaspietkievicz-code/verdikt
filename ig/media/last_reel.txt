@@ -1,1 +1,1 @@
-crypto:LINK
+stock:MU
