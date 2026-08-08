@@ -1,1 +1,1 @@
-stock:QCOM
+crypto:DOT
