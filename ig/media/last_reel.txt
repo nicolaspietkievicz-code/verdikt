@@ -1,1 +1,1 @@
-crypto:LTC
+stock:ORCL
