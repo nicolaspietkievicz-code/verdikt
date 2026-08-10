@@ -1,1 +1,1 @@
-stock:ORCL
+stock:IBM
