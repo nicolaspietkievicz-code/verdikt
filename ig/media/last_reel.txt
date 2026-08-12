@@ -1,1 +1,1 @@
-crypto:UNI
+stock:PLTR
