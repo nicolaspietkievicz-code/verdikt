@@ -1,1 +1,1 @@
-crypto:ATOM
+stock:UBER
