@@ -1,1 +1,1 @@
-stock:PLTR
+stock:COIN
