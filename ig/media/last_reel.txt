@@ -1,1 +1,1 @@
-stock:ABNB
+stock:SHOP
