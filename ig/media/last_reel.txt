@@ -1,1 +1,1 @@
-stock:SHOP
+crypto:BCH
