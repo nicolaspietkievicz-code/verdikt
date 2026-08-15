@@ -1,1 +1,1 @@
-crypto:BCH
+stock:WMT
