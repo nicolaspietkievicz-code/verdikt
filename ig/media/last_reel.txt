@@ -1,1 +1,1 @@
-stock:WMT
+stock:COST
