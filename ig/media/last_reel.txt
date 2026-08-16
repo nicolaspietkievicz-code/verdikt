@@ -1,1 +1,1 @@
-crypto:XLM
+stock:HD
