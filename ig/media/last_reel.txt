@@ -1,1 +1,1 @@
-stock:COST
+crypto:XLM
