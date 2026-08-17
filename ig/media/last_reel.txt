@@ -1,1 +1,1 @@
-crypto:ETC
+stock:SBUX
