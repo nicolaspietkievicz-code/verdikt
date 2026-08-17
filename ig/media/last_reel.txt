@@ -1,1 +1,1 @@
-stock:SBUX
+stock:PEP
