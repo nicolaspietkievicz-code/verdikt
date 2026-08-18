@@ -1,1 +1,1 @@
-crypto:FIL
+stock:PG
