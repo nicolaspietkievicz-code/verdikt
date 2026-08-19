@@ -1,1 +1,1 @@
-stock:PG
+stock:JNJ
