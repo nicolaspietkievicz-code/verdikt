@@ -1,1 +1,1 @@
-crypto:AAVE
+stock:PFE
