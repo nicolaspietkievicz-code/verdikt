@@ -1,1 +1,1 @@
-stock:MRK
+crypto:ALGO
