@@ -1,1 +1,1 @@
-crypto:ALGO
+stock:ABBV
