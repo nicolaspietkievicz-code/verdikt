@@ -1,1 +1,1 @@
-crypto:XTZ
+stock:WFC
