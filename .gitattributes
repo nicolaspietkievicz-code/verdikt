@@ -1,0 +1,13 @@
+# El repo es todo LF. Algunos editores/herramientas en Windows guardan CRLF y
+# eso ensucia los diffs (el archivo entero "cambia"). Con esto git normaliza a
+# LF al commitear, sin importar cómo esté en el disco.
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.py text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.xml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
