@@ -77,7 +77,7 @@
         "Watchlist, alertas de precio y portafolio"
       ],
       "offers": [
-        { "@type": "Offer", "name": "Gratis", "price": "0", "priceCurrency": "ARS" },
+        { "@type": "Offer", "name": "Gratis", "price": "0", "priceCurrency": "ARS", "description": "3 veredictos completos por día, sin registro" },
         { "@type": "Offer", "name": "Pro", "price": "24000", "priceCurrency": "ARS", "description": "30 días, sin renovación automática" }
       ]
     }
@@ -128,6 +128,14 @@
       "acceptedAnswer": {
         "@type": "Answer",
         "text": "El ratio indica cuántos CEDEARs equivalen a una acción original (por ejemplo, 20 CEDEARs por 1 acción). El dólar CCL (Contado con Liquidación) es el tipo de cambio implícito que surge de operar esos activos. Verdikt usa ambos para mostrarte el precio del CEDEAR en pesos ya calculado, al lado del análisis, sin que tengas que buscarlos por separado."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿El plan gratis tiene límite?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Sí: 3 veredictos completos por día, sin necesidad de crear una cuenta. Cada uno incluye el puntaje, el gráfico de 6 meses y todas las razones. El ranking del día, el ánimo del mercado, los cambios de veredicto y la Terminal de titulares no tienen límite. Con Pro (24000 pesos por 30 días, sin renovación automática) los veredictos son ilimitados."
       }
     },
     {
@@ -708,12 +716,11 @@
         <div class="plan">
           <div class="plan-name">GRATIS</div>
           <div class="price">$0</div>
-          <div class="price-note">Sin registro y sin límite de consultas.</div>
+          <div class="price-note">Sin registro. 3 veredictos completos por día.</div>
           <ul>
-            <li><b>Veredicto y análisis completo</b> de los más de 100 activos</li>
-            <li>Gráfico de 6 meses con la media de 200 días</li>
-            <li>Movers del día y cambios de veredicto</li>
-            <li>Terminal de titulares del mercado en vivo</li>
+            <li><b>3 veredictos completos por día</b>: score, gráfico y las razones</li>
+            <li>El ranking del día, el ánimo del mercado y los cambios de veredicto</li>
+            <li>Movers del día y la Terminal de titulares en vivo</li>
             <li>Portafolio de hasta 5 posiciones</li>
           </ul>
           <a class="btn" href="https://app.verdikt.finance/">Probar gratis</a>
@@ -723,10 +730,10 @@
           <div class="price">$24.000 <small>ARS / 30 días</small></div>
           <div class="price-note">Se paga por Mercado Pago. Sin renovación automática.</div>
           <ul>
-            <li>Todo lo del plan gratis</li>
+            <li><b>Veredictos ilimitados</b>, sin el tope de 3 por día</li>
+            <li>El ranking completo del mercado, no sólo el Top</li>
             <li><b>Watchlist</b>: seguí los activos que te importan</li>
-            <li><b>Aviso cuando cambia el veredicto</b> de un activo seguido</li>
-            <li><b>Alertas de precio</b>: avisa cuando toca tu nivel</li>
+            <li><b>Alertas</b>: aviso cuando cambia un veredicto o un precio toca tu nivel</li>
             <li>Portafolio sin límite de posiciones</li>
           </ul>
           <a class="btn btn-primary" href="https://app.verdikt.finance/?upgrade=1">Empezar con Pro</a>
@@ -759,6 +766,10 @@
         <details>
           <summary>¿Qué es el ratio de conversión y el dólar CCL?</summary>
           <div class="answer">El <b>ratio</b> indica cuántos CEDEARs equivalen a una acción original (por ejemplo, 20 CEDEARs por 1 acción). El <b>dólar CCL</b> (Contado con Liquidación) es el tipo de cambio implícito que surge de operar esos activos. Verdikt usa ambos para mostrarte el precio del CEDEAR en pesos ya calculado, al lado del análisis, sin que tengas que buscarlos por separado.</div>
+        </details>
+        <details>
+          <summary>¿El plan gratis tiene límite?</summary>
+          <div class="answer">Sí: <b>3 veredictos completos por día</b>, sin necesidad de crearte una cuenta. Cada uno incluye el puntaje, el gráfico de 6 meses y todas las razones. El ranking del día, el ánimo del mercado, los cambios de veredicto y la Terminal de titulares no tienen límite. Con <b>Pro</b> ($24.000 por 30 días, sin renovación automática) los veredictos son ilimitados.</div>
         </details>
         <details>
           <summary>¿Verdikt da recomendaciones de inversión?</summary>
