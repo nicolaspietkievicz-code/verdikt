@@ -15,6 +15,7 @@ un video con los datos de aquel dia.
 import json
 import os
 import sys
+import time
 import urllib.request
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -35,8 +36,19 @@ def pedir(sym: str, clase: str = "stock") -> dict:
             return json.load(f)
     url = API.format(clase=clase, sym=sym.upper())
     print("pidiendo", url)
-    with urllib.request.urlopen(url, timeout=30) as r:
-        return json.loads(r.read())
+    # El VPS de Hostinger a veces tarda o no contesta un request suelto desde
+    # los runners de GitHub. 3 intentos con backoff antes de rendirse.
+    ultimo = None
+    for intento in range(3):
+        try:
+            with urllib.request.urlopen(url, timeout=45) as r:
+                return json.loads(r.read())
+        except Exception as e:
+            ultimo = e
+            if intento < 2:
+                print(f"  timeout/error ({e}); reintento en {4 * (intento + 1)}s")
+                time.sleep(4 * (intento + 1))
+    raise ultimo
 
 
 def partir(texto: str):
