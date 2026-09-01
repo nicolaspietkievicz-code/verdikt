@@ -209,10 +209,12 @@
   }
   .btn-primary:hover { background: #3BD182; transform: translateY(-1px); }
   .btn-sm { padding: 7px 14px; font-size: 14px; }
-  /* Etiquetas que cambian según el ancho (el CTA del hero dice "Descargar
-     gratis" en el celular, donde la app se agrega a la pantalla de inicio). */
+  /* Piezas que cambian según el ancho: en el celular el CTA del hero es
+     "Descargar gratis" y lleva a ?instalar=1 (dispara el instalador de la PWA);
+     en escritorio queda "Probar gratis". inline-block sirve igual a <span> y a
+     <a class="btn">. */
   .only-mobile { display: none; }
-  .only-desktop { display: inline; }
+  .only-desktop { display: inline-block; }
 
   /* ---- Hero ---- */
   /* OJO: .hero convive con .wrap en el mismo div y pisa su padding lateral —
@@ -485,7 +487,7 @@
     .cta-row { justify-content: center; }
     .fineprint { text-align: center; }
     .only-desktop { display: none; }
-    .only-mobile { display: inline; }
+    .only-mobile { display: inline-block; }
     .cards, .steps { grid-template-columns: 1fr; }
     .screens { grid-template-columns: 1fr; gap: 40px; }
     /* (Acá vivía una regla `.phone-float` suelta que nunca se aplicaba: la de
@@ -516,7 +518,8 @@
       <h1>¿Comprar, acumular o evitar?</h1>
       <p class="lead">Verdikt analiza cada cripto y cada CEDEAR para darte <strong>un veredicto claro: un puntaje de 0 a 100</strong> con las razones detrás. Sin señales mágicas, sin humo. Datos técnicos explicados para que cualquiera los entienda.</p>
       <div class="cta-row">
-        <a class="btn btn-primary" href="https://app.verdikt.finance/"><span class="only-desktop">Probar gratis</span><span class="only-mobile">Descargar gratis</span></a>
+        <a class="btn btn-primary only-desktop" href="https://app.verdikt.finance/">Probar gratis</a>
+        <a class="btn btn-primary only-mobile" href="https://app.verdikt.finance/?instalar=1">Descargar gratis</a>
         <a class="btn" href="#como">Ver cómo funciona</a>
       </div>
       <div class="fineprint"><span class="only-desktop">&gt; sin registro</span><span class="only-mobile">&gt; web app &middot; sin tienda &middot; sin registro</span></div>
