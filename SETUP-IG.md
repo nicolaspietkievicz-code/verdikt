@@ -163,18 +163,27 @@ El reel dejó de publicarse solo. Ahora:
 3. **`ig-aprobar.yml`** se dispara con ese commit y publica el reel en ~2 min,
    con la carátula elegida como portada.
 
-### Secret nuevo: `OPENAI_API_KEY`
+### Secret nuevo: la key de IA (Gemini u OpenAI)
 
-1. Entrá a **platform.openai.com → API keys → Create new secret key**. Copiala.
-2. Necesitás **facturación activa** (Billing → agregar tarjeta / crédito).
-   `gpt-image-1` puede pedir **verificación de organización** (Settings →
-   Organization → Verify): si la primera corrida falla al generar imágenes con
-   un error de acceso, es eso — mientras tanto el sistema usa carátula de
-   plantilla igual.
-3. En el repo `verdikt`: **Settings → Secrets and variables → Actions → New
-   repository secret** → nombre `OPENAI_API_KEY`, valor la key.
-4. Opcional: variable `OPENAI_TEXT_MODEL` (por defecto `gpt-4.1-mini`).
+`ig/ia/cliente.py` soporta los dos. Elige por la key que esté seteada:
+`GEMINI_API_KEY` gana; si no, usa `OPENAI_API_KEY`.
 
-**Sin `OPENAI_API_KEY`** el reel se encola igual, con caption templado y
-carátula de plantilla. **Costo estimado con la key:** < USD 6/mes (texto
-centavos, 3 imágenes/día ~USD 0,15).
+**Gemini (recomendado — gratis, sin tarjeta):**
+
+1. **aistudio.google.com → Get API key → Create API key**. Copiala.
+2. Repo `verdikt` → **Settings → Secrets and variables → Actions → New
+   repository secret** → `GEMINI_API_KEY`.
+3. Opcional: variables `GEMINI_TEXT_MODEL` (def. `gemini-2.5-flash`) y
+   `GEMINI_IMAGE_MODEL` (def. `gemini-2.5-flash-image`).
+4. El free tier de AI Studio alcanza para 1 reel/día (1 llamada de texto + 3
+   de imagen). Si se queda corto, activás billing de Google Cloud (mucho más
+   permisivo que OpenAI para Argentina) — sale ~USD 0,04 por imagen.
+
+**OpenAI (alternativa):** `platform.openai.com → API keys`. Necesita facturación
+activa y `gpt-image-1` puede pedir verificar la organización. **Ojo:** el
+procesador de pagos de OpenAI rechaza en masa las tarjetas argentinas sin dar
+motivo — por eso Gemini es el camino por defecto. Secret `OPENAI_API_KEY`,
+variable opcional `OPENAI_TEXT_MODEL` (def. `gpt-4.1-mini`).
+
+**Sin ninguna key** el reel se encola igual, con caption templado y carátula de
+plantilla.

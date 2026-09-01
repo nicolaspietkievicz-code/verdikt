@@ -28,7 +28,7 @@ S = 2
 W, H = 1080 * S, 1920 * S
 
 _PREAMBULO = (
-    "Vertical 2:3 social cover for a financial-analysis app called Verdikt. "
+    "Vertical 9:16 portrait social cover for a financial-analysis app called Verdikt. "
     "Sober editorial finance aesthetic, NOT playful. Very dark near-black "
     "background (#07090C) with a faint technical grid and thin data lines. "
     "Restrained palette: deep charcoal, muted green (#2FBF71) as the only "
