@@ -36,9 +36,23 @@ Te paso los datos de un activo y devolves SOLO un objeto JSON con estas claves:
   Instagram. La primera linea tiene que hacer frenar el scroll. Podes citar el
   score, el veredicto, alguna razon concreta. No cierres con CTA ni hashtags:
   eso se agrega despues.
-- "brief_caratula": 1 o 2 frases en espanol, direccion de arte para una
-  portada vertical sobria de finanzas sobre este activo y este angulo. Nada de
-  personas ni de fotos; formas abstractas, datos, tipografia."""
+- "brief_caratula": un PROMPT completo en espanol, listo para pegar en ChatGPT
+  y que genere la portada del reel (formato vertical 9:16, para Instagram).
+  Tiene que ser CREATIVO y DISTINTO cada vez: parti de una metafora visual
+  concreta que nazca del angulo de hoy (un rebote que choca un techo, una
+  grieta en una estructura, una linea que se aleja de su promedio, dos fuerzas
+  que se empujan...). No repitas siempre "grafico de velas". El prompt debe
+  cubrir, en frases claras:
+  * el concepto / la metafora visual central
+  * la composicion (donde va cada cosa, que queda vacio para el texto abajo)
+  * la paleta: fondo casi negro (#07090C), un solo acento verde apagado
+    (#2FBF71), grises frios; nada estridente
+  * elementos concretos a dibujar
+  * estilo: editorial financiero, plano, preciso, con aire; NADA de personas,
+    caras, manos, fotos, logos de empresas reales, estetica de stock, 3D
+    brillante, ni emojis
+  * dejar el tercio inferior despejado para sobreimprimir el ticker y el score
+  Escribilo como instruccion directa a un generador de imagenes, 4 a 8 frases."""
 
 
 def _entrada(d: dict) -> str:

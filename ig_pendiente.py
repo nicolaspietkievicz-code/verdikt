@@ -164,7 +164,9 @@ def cmd_generar():
                json.dumps(copy, ensure_ascii=False, indent=2))
 
     nombres = [os.path.basename(c) for c in caratulas]
-    _write(os.path.join(out_dir, "APROBAR.md"), _aprobar_md(d, sym, clase, caption, nombres))
+    brief = (copy or {}).get("brief_caratula", "")
+    _write(os.path.join(out_dir, "APROBAR.md"),
+           _aprobar_md(d, sym, clase, caption, nombres, brief))
 
     os.makedirs(MEDIA_DIR, exist_ok=True)
     _write(PEND_PTR, fecha)
@@ -173,29 +175,38 @@ def cmd_generar():
     print("falta: subir el mp4 al release y commitear la carpeta")
 
 
-def _aprobar_md(d, sym, clase, caption, nombres):
+def _aprobar_md(d, sym, clase, caption, nombres, brief=""):
     ia = [n for n in nombres if n.startswith("cover-") and n != "cover-plantilla.png"]
     ops = ("0 (plantilla) · " +
            " · ".join(n.split("-")[1].split(".")[0] for n in ia) if ia
-           else "0 (plantilla)")
+           else "0 (plantilla) · mia (la tuya)")
     preview = "\n".join("    " + l for l in caption.splitlines()[:6])
+    bloque_prompt = ""
+    if brief:
+        bloque_prompt = (
+            "\n## Prompt para ChatGPT (carátula)\n\n"
+            "Copiá esto en ChatGPT, ajustá lo que quieras, bajá la imagen,\n"
+            "guardala en esta carpeta como `cover-mia.png` y poné `caratula: mia` arriba.\n\n"
+            "```\n"
+            f"{brief}\n"
+            "```\n"
+        )
     return (
         "caratula: 0\n"
         "descartar: no\n"
         "\n"
         "<!--\n"
         f"  caratula:  {ops}\n"
-        "             O pegá tu propia carátula en esta carpeta como\n"
-        "             cover-mia.png y poné 'caratula: mia'.\n"
         "  descartar: 'si' = no publicar hoy, saltear este activo.\n"
         "  Guardá y commiteá: el reel se publica solo en ~2 min.\n"
         "-->\n"
         "\n"
         f"# {sym} · {d['verdict']} {d['score']}/100\n"
         f"\n{clase} — {d['name']}\n"
-        f"\nArchivos de carátula: {', '.join(nombres)}\n"
-        "\nCaption:\n\n"
+        f"{bloque_prompt}"
+        "\n## Caption\n\n"
         f"{preview}\n"
+        f"\n---\nArchivos de carátula en la carpeta: {', '.join(nombres)}\n"
     )
 
 
