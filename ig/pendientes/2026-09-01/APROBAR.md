@@ -1,4 +1,4 @@
-caratula: 0
+caratula: mia-marca
 descartar: no
 
 <!--
