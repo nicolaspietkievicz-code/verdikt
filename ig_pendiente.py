@@ -108,11 +108,16 @@ def _copy_y_caratulas(d, out_dir):
 
     titular = (copy or {}).get("titular", "")
     # La de plantilla se genera SIEMPRE: es la opcion "caratula: 0" y el
-    # respaldo si la IA falla.
+    # respaldo si no hay otra cosa.
     plantilla = caratula.plantilla(
         d, os.path.join(out_dir, "cover-plantilla.png"), titular=titular)
     caratulas = []
-    if copy:
+    # Las caratulas de IA (modelo pago, o Pollinations gratis pero mediocre)
+    # son opt-in: por defecto solo va la plantilla y el usuario pega la suya.
+    # Se prenden con la var de repo IA_CARATULAS=1 o si hay key de imagen paga.
+    quiere_ia = (os.environ.get("IA_CARATULAS", "").strip()
+                 or os.environ.get("OPENAI_API_KEY", "").strip())
+    if copy and quiere_ia:
         try:
             caratulas = caratula.generar(d, copy["brief_caratula"], out_dir,
                                          titular=titular)
@@ -170,21 +175,26 @@ def cmd_generar():
 
 
 def _aprobar_md(d, sym, clase, caption, nombres):
-    ops = " / ".join(str(i) for i in range(1, len(nombres) + 1)) or "(no hay)"
+    ia = [n for n in nombres if n.startswith("cover-") and n != "cover-plantilla.png"]
+    ops = ("0 (plantilla) · " +
+           " · ".join(n.split("-")[1].split(".")[0] for n in ia) if ia
+           else "0 (plantilla)")
     preview = "\n".join("    " + l for l in caption.splitlines()[:6])
     return (
         "caratula: 0\n"
         "descartar: no\n"
         "\n"
         "<!--\n"
-        f"  caratula:  poné {ops} para elegir una de la IA. 0 = plantilla sobria.\n"
+        f"  caratula:  {ops}\n"
+        "             O pegá tu propia carátula en esta carpeta como\n"
+        "             cover-mia.png y poné 'caratula: mia'.\n"
         "  descartar: 'si' = no publicar hoy, saltear este activo.\n"
-        "  Guardá el archivo y commiteá: el reel se publica solo en ~2 min.\n"
+        "  Guardá y commiteá: el reel se publica solo en ~2 min.\n"
         "-->\n"
         "\n"
         f"# {sym} · {d['verdict']} {d['score']}/100\n"
         f"\n{clase} — {d['name']}\n"
-        f"\nCarátulas: {', '.join(nombres)}\n"
+        f"\nArchivos de carátula: {', '.join(nombres)}\n"
         "\nCaption:\n\n"
         f"{preview}\n"
     )
@@ -208,8 +218,8 @@ def _carpeta_pendiente():
 def _parse_aprobar(ruta):
     """Lee solo el bloque de claves del encabezado (hasta la primera linea en
     blanco o el primer comentario): asi el texto de ayuda del <!-- --> no pisa
-    lo que puso el usuario."""
-    caratula, descartar = 0, False
+    lo que puso el usuario. Devuelve (caratula:str, descartar:bool)."""
+    caratula, descartar = "0", False
     for linea in _read(ruta).splitlines():
         s = linea.strip()
         if not s or s.startswith("<!--"):
@@ -217,15 +227,28 @@ def _parse_aprobar(ruta):
         k, sep, v = s.partition(":")
         if not sep:
             continue
-        k, v = k.strip().lower(), v.strip().lower()
-        if k == "caratula":
-            try:
-                caratula = int(v)
-            except ValueError:
-                pass
+        k, v = k.strip().lower(), v.strip()
+        if k == "caratula" and v:
+            caratula = v
         elif k == "descartar":
-            descartar = v in ("si", "sí", "true", "yes")
+            descartar = v.lower() in ("si", "sí", "true", "yes")
     return caratula, descartar
+
+
+def _elegir_cover(carpeta, valor):
+    """`valor` puede ser 0 (plantilla), 1/2/3 (cover-N.png) o un nombre libre
+    para la caratula propia que el usuario dejo en la carpeta (acepta 'mia',
+    'mia.png' o 'cover-mia.png'). Devuelve el nombre de archivo o None."""
+    hay = {os.path.basename(p) for p in glob.glob(os.path.join(carpeta, "*.png"))}
+    v = valor.strip().lower()
+    if v in ("0", "", "plantilla"):
+        return "cover-plantilla.png" if "cover-plantilla.png" in hay else None
+    candidatos = [v, f"{v}.png", f"cover-{v}.png",
+                  f"cover-{v}.png".replace(".png.png", ".png")]
+    for c in candidatos:
+        if c in hay:
+            return c
+    return "cover-plantilla.png" if "cover-plantilla.png" in hay else None
 
 
 def cmd_aprobar(video_url, cover_base, dry_run):
@@ -235,7 +258,7 @@ def cmd_aprobar(video_url, cover_base, dry_run):
         return 0
     print("carpeta:", os.path.relpath(carpeta, RAIZ))
 
-    n, descartar = _parse_aprobar(os.path.join(carpeta, "APROBAR.md"))
+    valor, descartar = _parse_aprobar(os.path.join(carpeta, "APROBAR.md"))
     asset = _read(os.path.join(carpeta, "asset.txt"))
 
     if descartar:
@@ -245,16 +268,7 @@ def cmd_aprobar(video_url, cover_base, dry_run):
             print("descartado; rotacion avanzada a", asset)
         return 0
 
-    # Elegir la caratula.
-    covers = sorted(os.path.basename(p) for p in glob.glob(os.path.join(carpeta, "cover-*.png")))
-    if 1 <= n <= len(covers) and f"cover-{n}.png" in covers:
-        cover = f"cover-{n}.png"
-    elif "cover-plantilla.png" in covers:
-        cover = "cover-plantilla.png"
-    elif covers:
-        cover = covers[0]
-    else:
-        cover = None
+    cover = _elegir_cover(carpeta, valor)
     print("caratula:", cover or "(ninguna, la elige Instagram)")
 
     if not video_url:

@@ -16,7 +16,7 @@ import os
 
 from PIL import Image, ImageDraw, ImageFilter
 
-from ig.ia.cliente import IAError, imagenes
+from ig.ia.cliente import IAError, imagenes, imagenes_gratis
 
 _RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _mc_spec = importlib.util.spec_from_file_location(
@@ -142,14 +142,22 @@ def plantilla(d: dict, ruta: str, *, titular: str = "") -> str:
 
 def generar(d: dict, brief: str, out_dir: str, *, n: int = 3,
             titular: str = "") -> list:
-    """3 caratulas de IA, ya con la marca montada. Tira IAError si la IA falla:
-    el orquestador cae a plantilla()."""
+    """Hasta n caratulas, ya con la marca montada. Prueba el modelo pago
+    (Gemini/OpenAI) y si no hay (sin key o sin billing) cae a Pollinations,
+    que es gratis y sin tarjeta. Tira IAError si ninguna anda: el orquestador
+    usa entonces la de plantilla."""
     prompt = _PREAMBULO
     if titular:
         prompt += f'Theme of the piece: "{titular}". '
     prompt += f"Art direction: {brief}"
 
-    pngs = imagenes(prompt, n=n)
+    try:
+        pngs = imagenes(prompt, n=n)
+        print("  caratulas: modelo pago")
+    except IAError as e:
+        print(f"  caratulas: sin modelo pago ({e}); voy a Pollinations")
+        pngs = imagenes_gratis(prompt, n=n)
+
     rutas = []
     for i, raw in enumerate(pngs, 1):
         im = _marca(_encajar(raw), d)

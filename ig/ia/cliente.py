@@ -21,7 +21,9 @@ Google Cloud (mas permisivo con tarjetas argentinas que OpenAI)."""
 import base64
 import json
 import os
+import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 _OPENAI = "https://api.openai.com/v1"
@@ -44,17 +46,36 @@ def _provider():
     raise IAError("Falta GEMINI_API_KEY u OPENAI_API_KEY en el entorno.")
 
 
-def _req(url, payload, headers, timeout):
-    req = urllib.request.Request(
-        url, data=json.dumps(payload).encode(),
-        headers={**headers, "Content-Type": "application/json"}, method="POST")
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        raise IAError(f"HTTP {e.code}: {e.read().decode(errors='replace')[:800]}")
-    except Exception as e:
-        raise IAError(f"{type(e).__name__}: {e}")
+_REINTENTABLE = {429, 500, 502, 503, 504}
+
+
+def _req(url, payload, headers, timeout, *, reintentos=3):
+    """POST con reintento: Gemini y OpenAI tiran 503/429 transitorios seguido,
+    sobre todo en free tier. Backoff 2s, 6s, 14s."""
+    body = json.dumps(payload).encode()
+    espera = 2
+    for intento in range(reintentos + 1):
+        req = urllib.request.Request(
+            url, data=body,
+            headers={**headers, "Content-Type": "application/json"}, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            detalle = e.read().decode(errors="replace")[:800]
+            if e.code in _REINTENTABLE and intento < reintentos:
+                print(f"  HTTP {e.code}, reintento {intento + 1}/{reintentos} en {espera}s")
+                time.sleep(espera)
+                espera = espera * 3 - 2
+                continue
+            raise IAError(f"HTTP {e.code}: {detalle}")
+        except Exception as e:
+            if intento < reintentos:
+                print(f"  {type(e).__name__}, reintento {intento + 1}/{reintentos} en {espera}s")
+                time.sleep(espera)
+                espera = espera * 3 - 2
+                continue
+            raise IAError(f"{type(e).__name__}: {e}")
 
 
 # ------------------------------------------------------------------ texto ------
@@ -131,4 +152,29 @@ def imagenes(prompt: str, *, n: int = 3, size: str = "1024x1536",
            if i.get("b64_json")]
     if not out:
         raise IAError(f"OpenAI sin imagenes: {str(data)[:400]}")
+    return out
+
+
+def imagenes_gratis(prompt: str, *, n: int = 3, timeout: int = 90) -> list:
+    """Fallback SIN key ni tarjeta: Pollinations (FLUX). Es un servicio
+    comunitario gratis; puede estar lento o caido, asi que es best effort y
+    cada imagen que falla se saltea. Devuelve bytes de imagen."""
+    base = "https://image.pollinations.ai/prompt/"
+    q = urllib.parse.quote(prompt[:1800])
+    # Sin User-Agent de browser Pollinations tira 403.
+    hdrs = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+    out = []
+    for seed in range(n):
+        url = (f"{base}{q}?width=896&height=1600&nologo=true&model=flux"
+               f"&referrer=verdikt.finance&seed={seed * 7919 + 13}")
+        try:
+            req = urllib.request.Request(url, headers=hdrs)
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                data = r.read()
+            if data and len(data) > 2000:
+                out.append(data)
+        except Exception as e:
+            print(f"  pollinations seed {seed}: {e}")
+    if not out:
+        raise IAError("Pollinations no devolvio ninguna imagen.")
     return out

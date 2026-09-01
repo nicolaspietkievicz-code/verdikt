@@ -90,6 +90,9 @@ jobs:
           GEMINI_IMAGE_MODEL: ${{ vars.GEMINI_IMAGE_MODEL }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_TEXT_MODEL: ${{ vars.OPENAI_TEXT_MODEL }}
+          # IA_CARATULAS=1 prende las portadas automaticas (modelo pago o
+          # Pollinations gratis). Por defecto solo va la plantilla + la tuya.
+          IA_CARATULAS: ${{ vars.IA_CARATULAS }}
         run: python ig_pendiente.py generar
 
       - name: Subir el reel al release
