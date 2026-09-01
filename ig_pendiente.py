@@ -107,18 +107,19 @@ def _copy_y_caratulas(d, out_dir):
         caption = bd.caption(d)
 
     titular = (copy or {}).get("titular", "")
+    # La de plantilla se genera SIEMPRE: es la opcion "caratula: 0" y el
+    # respaldo si la IA falla.
+    plantilla = caratula.plantilla(
+        d, os.path.join(out_dir, "cover-plantilla.png"), titular=titular)
     caratulas = []
     if copy:
         try:
             caratulas = caratula.generar(d, copy["brief_caratula"], out_dir,
                                          titular=titular)
-            print(f"{len(caratulas)} caratulas de IA")
+            print(f"{len(caratulas)} caratulas de IA + plantilla")
         except IAError as e:
-            print(f"::warning::sin caratulas de IA ({e}). Va la de plantilla.")
-    if not caratulas:
-        caratulas = [caratula.plantilla(
-            d, os.path.join(out_dir, "cover-plantilla.png"), titular=titular)]
-    return caption, caratulas, copy
+            print(f"::warning::sin caratulas de IA ({e}). Queda la de plantilla.")
+    return caption, (caratulas or [plantilla]), copy
 
 
 def _cierre_caption(d):
