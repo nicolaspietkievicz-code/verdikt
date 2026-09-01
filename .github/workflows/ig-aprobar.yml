@@ -20,6 +20,11 @@ on:
     paths:
       - "ig/pendientes/**/APROBAR.md"
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Probar sin publicar"
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -66,9 +71,12 @@ jobs:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
         run: |
           BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/ig/pendientes"
-          python ig_pendiente.py aprobar --cover-base "$BASE"
+          DRY=""
+          [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ] && DRY="--dry-run"
+          python ig_pendiente.py aprobar --cover-base "$BASE" $DRY
 
       - name: Anotar el resultado
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.dry_run != true }}
         run: |
           git config user.name "verdikt-bot"
           git config user.email "bot@verdikt.finance"
