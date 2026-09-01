@@ -9,10 +9,15 @@ Ninguna -> IAError, y el llamador cae a plantilla (misma logica que los
 secrets de Instagram).
 
 Variables opcionales de modelo:
-  GEMINI_TEXT_MODEL   (def. gemini-2.5-flash)
+  GEMINI_TEXT_MODEL   (def. gemini-flash-latest)
   GEMINI_IMAGE_MODEL  (def. gemini-2.5-flash-image)
   OPENAI_TEXT_MODEL   (def. gpt-4.1-mini)
-  OPENAI_IMAGE_MODEL  (def. gpt-image-1)"""
+  OPENAI_IMAGE_MODEL  (def. gpt-image-1)
+
+OJO: en Gemini el TEXTO tiene free tier pero la IMAGEN no (quota 0 sin
+billing, da 429). Con la key gratis de AI Studio funciona el copy y las
+caratulas caen a plantilla. Para caratulas de IA hay que activar billing de
+Google Cloud (mas permisivo con tarjetas argentinas que OpenAI)."""
 import base64
 import json
 import os
@@ -57,7 +62,7 @@ def chat(system: str, user: str, *, json_out: bool = True, timeout: int = 60) ->
     """Una vuelta de chat. Devuelve el texto crudo (si json_out, un objeto JSON
     como string)."""
     if _provider() == "gemini":
-        model = _env("GEMINI_TEXT_MODEL") or "gemini-2.5-flash"
+        model = _env("GEMINI_TEXT_MODEL") or "gemini-flash-latest"
         body = {
             "systemInstruction": {"parts": [{"text": system}]},
             "contents": [{"role": "user", "parts": [{"text": user}]}],
