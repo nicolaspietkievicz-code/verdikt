@@ -39,6 +39,7 @@ def _env(nombre):
 
 
 def _provider():
+    """Para TEXTO: Gemini gana (tiene free tier)."""
     if _env("GEMINI_API_KEY"):
         return "gemini"
     if _env("OPENAI_API_KEY"):
@@ -46,7 +47,20 @@ def _provider():
     raise IAError("Falta GEMINI_API_KEY u OPENAI_API_KEY en el entorno.")
 
 
-_REINTENTABLE = {429, 500, 502, 503, 504}
+def _image_provider():
+    """Para IMAGEN: OpenAI gana si esta (gpt-image-1 rinde mejor y, si el
+    usuario cargo billing ahi, es donde tiene con que pagar). Gemini imagen
+    necesita billing igual; sin ninguna, el llamador va a Pollinations."""
+    if _env("OPENAI_API_KEY"):
+        return "openai"
+    if _env("GEMINI_API_KEY"):
+        return "gemini"
+    raise IAError("Falta OPENAI_API_KEY o GEMINI_API_KEY en el entorno.")
+
+
+# 429 no se reintenta: en free tier de imagen es quota 0 (permanente), y para
+# texto un rate-limit puntual con 1 request/dia no pasa.
+_REINTENTABLE = {500, 502, 503, 504}
 
 
 def _req(url, payload, headers, timeout, *, reintentos=3):
@@ -121,7 +135,7 @@ def imagenes(prompt: str, *, n: int = 3, size: str = "1024x1536",
     Gemini genera de a una, asi que se llama n veces; OpenAI las pide en una
     sola. El encuadre final (1080x1920) lo hace caratula.py, asi que el aspect
     ratio exacto de la fuente no importa demasiado."""
-    if _provider() == "gemini":
+    if _image_provider() == "gemini":
         model = _env("GEMINI_IMAGE_MODEL") or "gemini-2.5-flash-image"
         out = []
         for _ in range(n):

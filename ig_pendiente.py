@@ -114,10 +114,9 @@ def _copy_y_caratulas(d, out_dir):
     caratulas = []
     # Las caratulas de IA (modelo pago, o Pollinations gratis pero mediocre)
     # son opt-in: por defecto solo va la plantilla y el usuario pega la suya.
-    # Se prenden con la var de repo IA_CARATULAS=1 o si hay key de imagen paga.
-    quiere_ia = (os.environ.get("IA_CARATULAS", "").strip()
-                 or os.environ.get("OPENAI_API_KEY", "").strip())
-    if copy and quiere_ia:
+    # Se prenden con la var de repo IA_CARATULAS=1 (poner cuando OpenAI tenga
+    # billing andando, o para usar Pollinations).
+    if copy and os.environ.get("IA_CARATULAS", "").strip():
         try:
             caratulas = caratula.generar(d, copy["brief_caratula"], out_dir,
                                          titular=titular)
