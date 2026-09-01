@@ -17,6 +17,9 @@ node_modules/
 
 ig/media/reel_asset.txt
 ig/media/reel_video.txt
+# Puntero efimero a la carpeta que dejo ig_pendiente.py generar (la carpeta
+# ig/pendientes/<fecha>/ SI se commitea; esto es solo la brujula del workflow).
+ig/media/pendiente_dir.txt
 
 # Worktrees de Claude: repos git anidados, no van al repo.
 .claude/

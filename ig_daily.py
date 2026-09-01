@@ -29,8 +29,6 @@ import importlib.util
 import os
 import shutil
 import sys
-import urllib.error
-import urllib.request
 
 import ig_publish
 
@@ -226,49 +224,18 @@ def cmd_placa():
     return 0
 
 
-API_VERDICT = "https://app.verdikt.finance/verdict/{clase}/{sym}"
-
-
-def _verdict_status(clase: str, sym: str):
-    """Codigo HTTP de /verdict para ese activo. 404 = el proveedor le corto los
-    datos (ticker muerto o renombrado). None = timeout / 5xx / red: no
-    concluyente, no es motivo para sacarlo de la rotacion."""
-    url = API_VERDICT.format(clase=clase, sym=sym.upper())
-    try:
-        with urllib.request.urlopen(url, timeout=45) as r:
-            return r.status
-    except urllib.error.HTTPError as e:
-        return e.code
-    except Exception as e:
-        print(f"  sonda {sym}: {e}")
-        return None
-
-
 def cmd_reel():
     """Elige el activo del reel de hoy y deja el puntero. No genera el video:
     eso lo hace make-ig-reel.py, que tarda minutos y necesita Playwright.
 
-    Antes de elegir, sondea el endpoint: si un activo da 404 (le cortaron los
-    datos) se lo saltea Y se adelanta el puntero, para que no vuelva a tocar en
-    la proxima tanda. Sin esto un solo ticker muerto congela los tres reels del
-    dia, porque la rotacion no avanza cuando el render falla (paso EOS, 28/08)."""
+    Usa siguiente_con_datos(), que sondea /verdict y saltea los activos que dan
+    404 adelantando el puntero: sin eso un solo ticker muerto congela los reels,
+    porque la rotacion no avanza cuando el render falla (paso EOS, 28/08)."""
     os.makedirs(MEDIA_DIR, exist_ok=True)
-    last = _read(REEL_LAST_FILE)
-    muertos = []
-    clase = sym = None
-    for _ in range(12):
-        c, s = rotacion.siguiente(last)
-        cand = rotacion.clave(c, s)
-        st = _verdict_status(c, s)
-        if st == 404:
-            print(f"{s} ({c}): sin datos (404), se saltea de la rotacion")
-            muertos.append(cand)
-            last = cand
-            continue
-        clase, sym = c, s
-        break
-    if clase is None:
-        print("12 activos seguidos sin datos: se aborta (revisar el backend).")
+    try:
+        clase, sym, muertos = rotacion.siguiente_con_datos(_read(REEL_LAST_FILE))
+    except RuntimeError as e:
+        print(e)
         return 1
     if muertos:
         with open(REEL_LAST_FILE, "w", encoding="utf-8") as f:

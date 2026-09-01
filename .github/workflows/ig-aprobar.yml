@@ -1,0 +1,78 @@
+# Publica (o descarta) el reel pendiente cuando el usuario aprueba.
+#
+# El usuario abre ig/pendientes/<fecha>/APROBAR.md desde GitHub en el celular,
+# pone "caratula: 2" (o "descartar: si") y commitea. Ese push dispara esto:
+#
+#   caratula: N   -> publica el reel con cover-N.png como portada.
+#   caratula: 0   -> publica con la caratula de plantilla (sobria, sin IA).
+#   descartar: si -> no publica, saltea el activo, avanza la rotacion igual.
+#
+# Recien aca avanza ig/media/last_reel.txt: si Instagram falla, la carpeta
+# queda sin resolver y se puede reintentar.
+#
+# OJO: tambien commitea APROBAR.md el bot al encolar (ig-pendiente.yml). El
+# job "guard" corta esas corridas mirando el autor del ultimo commit.
+name: Aprobar reel de Verdikt
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ig/pendientes/**/APROBAR.md"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ig-aprobar
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.g.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: g
+        run: |
+          if [ "${{ github.event_name }}" != "push" ]; then
+            echo "run=yes" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          AUTOR=$(git log -1 --format=%ae)
+          if [ "$AUTOR" = "bot@verdikt.finance" ]; then
+            echo "::notice::commit del bot ($AUTOR), no es una aprobacion."
+            echo "run=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=yes" >> "$GITHUB_OUTPUT"
+          fi
+
+  aprobar:
+    needs: guard
+    if: needs.guard.outputs.run == 'yes'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Publicar o descartar
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: |
+          BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/ig/pendientes"
+          python ig_pendiente.py aprobar --cover-base "$BASE"
+
+      - name: Anotar el resultado
+        run: |
+          git config user.name "verdikt-bot"
+          git config user.email "bot@verdikt.finance"
+          git add ig/pendientes ig/media/last_reel.txt
+          git commit -m "IG: reel resuelto" || echo "sin cambios"
+          git pull --rebase --autostash
+          git push

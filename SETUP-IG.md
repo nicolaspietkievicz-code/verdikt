@@ -144,3 +144,37 @@ Argentina)** cuando haya cambios de veredicto. Los días sin cambios no postea.
 - **Seguridad:** el token es revocable. Si alguna vez querés cortar todo,
   borralo del Usuario del Sistema (o cambiá la contraseña de FB) y listo.
 - **Costo:** cero. Todo corre en GitHub Actions (gratis en este repo público).
+
+---
+
+## Reel diario con IA + revisión (desde 2026-09)
+
+El reel dejó de publicarse solo. Ahora:
+
+1. **`ig-pendiente.yml`** (cron 14:00 UTC): elige el activo del día, renderiza
+   el reel, y le pide a OpenAI el copy (gancho + caption) y **3 carátulas**.
+   Deja todo en **`ig/pendientes/<fecha>/`** y lo commitea. NO publica.
+2. **Vos**, desde el celular: abrís `ig/pendientes/<hoy>/`, mirás las 3
+   carátulas (`cover-1.png` … `cover-3.png`) y el `caption.txt`, editás
+   **`APROBAR.md`**:
+   - `caratula: 2` → publica con esa. `caratula: 0` → carátula de plantilla sobria.
+   - `descartar: si` → no publica hoy, saltea el activo.
+   Guardás y commiteás.
+3. **`ig-aprobar.yml`** se dispara con ese commit y publica el reel en ~2 min,
+   con la carátula elegida como portada.
+
+### Secret nuevo: `OPENAI_API_KEY`
+
+1. Entrá a **platform.openai.com → API keys → Create new secret key**. Copiala.
+2. Necesitás **facturación activa** (Billing → agregar tarjeta / crédito).
+   `gpt-image-1` puede pedir **verificación de organización** (Settings →
+   Organization → Verify): si la primera corrida falla al generar imágenes con
+   un error de acceso, es eso — mientras tanto el sistema usa carátula de
+   plantilla igual.
+3. En el repo `verdikt`: **Settings → Secrets and variables → Actions → New
+   repository secret** → nombre `OPENAI_API_KEY`, valor la key.
+4. Opcional: variable `OPENAI_TEXT_MODEL` (por defecto `gpt-4.1-mini`).
+
+**Sin `OPENAI_API_KEY`** el reel se encola igual, con caption templado y
+carátula de plantilla. **Costo estimado con la key:** < USD 6/mes (texto
+centavos, 3 imágenes/día ~USD 0,15).

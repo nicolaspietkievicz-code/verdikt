@@ -20,9 +20,14 @@ meterlo aca.
 BAJAS 2026-09-01: EOS e ICX salieron. Los proveedores de datos les cortaron el
 feed (EOS se renombro a Vaulta), asi que /verdict/crypto/EOS devuelve 404. Como
 el reel NO avanza la rotacion si el render falla, EOS quedo de tapon y frozo
-los tres reels diarios desde el 28/08. Ademas de sacarlos de aca, `ig_daily.py`
-ahora sondea el endpoint antes de elegir y saltea cualquier activo que de 404.
+los tres reels diarios desde el 28/08. Ademas de sacarlos de aca,
+`siguiente_con_datos()` sondea el endpoint antes de elegir y saltea cualquier
+activo que de 404.
 """
+import urllib.error
+import urllib.request
+
+API_VERDICT = "https://app.verdikt.finance/verdict/{clase}/{sym}"
 
 ACCIONES = [
     "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "MELI",
@@ -82,6 +87,42 @@ def siguiente(ultimo: str = ""):
 
 def clave(clase: str, sym: str) -> str:
     return f"{clase}:{sym}"
+
+
+def verdict_status(clase: str, sym: str):
+    """Codigo HTTP de /verdict para ese activo. 404 = el proveedor le corto los
+    datos (ticker muerto o renombrado, paso con EOS). None = timeout / 5xx /
+    red: no concluyente, no es motivo para sacarlo de la rotacion."""
+    url = API_VERDICT.format(clase=clase, sym=sym.upper())
+    try:
+        with urllib.request.urlopen(url, timeout=45) as r:
+            return r.status
+    except urllib.error.HTTPError as e:
+        return e.code
+    except Exception as e:
+        print(f"  sonda {sym}: {e}")
+        return None
+
+
+def siguiente_con_datos(ultimo: str = "", *, saltos=12):
+    """Como siguiente(), pero sondea /verdict y saltea los activos que dan 404.
+
+    Devuelve (clase, simbolo, muertos) donde `muertos` es la lista de claves
+    'clase:simbolo' que se saltearon: el llamador conviene que adelante su
+    marcador sobre la ultima, para no volver a probarlas. Un solo ticker muerto
+    justo despues del marcador congelaba los tres reels del dia, porque la
+    rotacion no avanza cuando el render falla (paso EOS, 28/08)."""
+    last = ultimo
+    muertos = []
+    for _ in range(saltos):
+        c, s = siguiente(last)
+        if verdict_status(c, s) == 404:
+            print(f"{s} ({c}): sin datos (404), se saltea de la rotacion")
+            muertos.append(clave(c, s))
+            last = clave(c, s)
+            continue
+        return c, s, muertos
+    raise RuntimeError(f"{saltos} activos seguidos sin datos: revisar el backend")
 
 
 if __name__ == "__main__":

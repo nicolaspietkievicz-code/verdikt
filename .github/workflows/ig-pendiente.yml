@@ -1,0 +1,123 @@
+# Reel diario de Verdikt: GENERA y ENCOLA. No publica.
+#
+# Reemplaza a ig-reels.yml (3 reels/dia, automatico, todos con el mismo
+# formato). Ahora es 1 reel/dia que pasa por el ojo del usuario:
+#
+#   este workflow  -> arma el reel + copy de IA + 3 caratulas y lo deja en
+#                     ig/pendientes/<fecha>/ commiteado.
+#   ig-aprobar.yml -> cuando el usuario edita APROBAR.md y commitea, publica
+#                     (o descarta) esa carpeta.
+#
+# El MP4 va al release "media" (no se commitea, pesa ~3 MB). Las caratulas PNG
+# si se commitean: son lo que el usuario mira desde GitHub en el celular.
+#
+# Secret nuevo: OPENAI_API_KEY (para el copy y las caratulas). Sin el, encola
+# igual con caption templado y una caratula de plantilla -- misma degradacion
+# que cuando faltan los secrets de Instagram.
+name: Reel pendiente de Verdikt
+
+on:
+  schedule:
+    # Una vez al dia, temprano: GitHub atrasa los crons entre 1 y 3,5 h. A las
+    # 14:00 UTC (11 ART) el snapshot del backend ya corrio.
+    - cron: "0 14 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ig-pendiente
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.g.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: g
+        run: |
+          DIA=$(date -u -d '-3 hours' +%F)   # fecha argentina
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "run=yes" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # Si ya hay una carpeta de hoy sin resolver, no la regeneramos: el
+          # usuario podria estar mirando las caratulas.
+          if [ -d "ig/pendientes/$DIA" ] && [ ! -f "ig/pendientes/$DIA/.publicado" ]; then
+            echo "::notice::ig/pendientes/$DIA ya existe sin resolver."
+            echo "run=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=yes" >> "$GITHUB_OUTPUT"
+          fi
+
+  generar:
+    needs: guard
+    if: needs.guard.outputs.run == 'yes'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar Pillow y ffmpeg
+        run: pip install pillow imageio-ffmpeg
+
+      - name: Instalar Playwright
+        run: npm install --no-save playwright && npx playwright install --with-deps chromium
+
+      - name: Cache de la voz
+        uses: actions/cache@v4
+        with:
+          path: ig/reel/voces
+          key: piper-es_ES-sharvard-medium-v1
+
+      - name: Instalar la voz
+        run: |
+          pip install piper-tts
+          if [ ! -f ig/reel/voces/es_ES-sharvard-medium.onnx ]; then
+            python -m piper.download_voices --download-dir ig/reel/voces es_ES-sharvard-medium
+          else
+            echo "la voz ya estaba en cache"
+          fi
+
+      - name: Generar y encolar
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_TEXT_MODEL: ${{ vars.OPENAI_TEXT_MODEL }}
+        run: python ig_pendiente.py generar
+
+      - name: Subir el reel al release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          DIR="ig/pendientes/$(cat ig/media/pendiente_dir.txt)"
+          MP4=$(cat "$DIR/reel_local.txt")
+          gh release upload media "$MP4" --clobber --repo "${{ github.repository }}"
+          echo "https://github.com/${{ github.repository }}/releases/download/media/$(basename "$MP4")" > "$DIR/reel_url.txt"
+
+      - name: Commitear la carpeta pendiente
+        run: |
+          DIR="ig/pendientes/$(cat ig/media/pendiente_dir.txt)"
+          git config user.name "verdikt-bot"
+          git config user.email "bot@verdikt.finance"
+          git add "$DIR" ig/media/last_reel.txt ig/reels
+          git commit -m "IG: reel pendiente de revision ($(basename "$DIR"))" || echo "sin cambios"
+          git pull --rebase --autostash
+          git push
+
+      - name: Podar reels viejos del release
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VIEJOS=$(gh release view media --repo "${{ github.repository }}" \
+                     --json assets --jq '.assets | sort_by(.createdAt) | .[:-6] | .[].name')
+          for a in $VIEJOS; do
+            echo "borrando $a"
+            gh release delete-asset media "$a" --yes --repo "${{ github.repository }}"
+          done
+          [ -z "$VIEJOS" ] && echo "nada que podar"

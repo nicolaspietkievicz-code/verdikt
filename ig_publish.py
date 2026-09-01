@@ -199,24 +199,33 @@ def publish_story(image_url: str, *, user_id=None, token=None, dry_run=False) ->
 
 
 def publish_reel(video_url: str, caption: str, *, user_id=None, token=None,
-                 dry_run=False, share_to_feed=True) -> str:
+                 dry_run=False, share_to_feed=True, cover_url=None) -> str:
     """Publica un REEL (video vertical). Mismo flujo de dos pasos que la imagen,
     con dos diferencias: el contenedor se crea con media_type=REELS + video_url,
     y hay que esperarle mucho mas al transcode.
 
     share_to_feed=True hace que ademas aparezca en la grilla del perfil, no solo
-    en la pestaña de reels: si no, el perfil se ve vacio para quien lo visita."""
+    en la pestaña de reels: si no, el perfil se ve vacio para quien lo visita.
+
+    cover_url: URL publica de una imagen para la portada del reel (lo que se ve
+    en la grilla y como primer fotograma). Sin esto Instagram elige un frame
+    del video. Alternativa a thumb_offset; si se pasan las dos, gana cover_url."""
     if dry_run:
+        if cover_url:
+            print("  cover_url  :", cover_url)
         return _aviso_dry("video_url", video_url, caption, user_id, token)
     user_id, token = _creds(user_id, token)
 
-    cont = _post(f"{user_id}/media", {
+    params = {
         "media_type": "REELS",
         "video_url": video_url,
         "caption": caption,
         "share_to_feed": "true" if share_to_feed else "false",
         "access_token": token,
-    })
+    }
+    if cover_url:
+        params["cover_url"] = cover_url
+    cont = _post(f"{user_id}/media", params)
     cid = cont.get("id")
     if not cid:
         raise PublishError(f"No se creo el contenedor del reel: {cont}")
@@ -239,6 +248,7 @@ def main():
     g = ap.add_mutually_exclusive_group()
     g.add_argument("--caption")
     g.add_argument("--caption-file")
+    ap.add_argument("--cover-url", help="portada del reel (solo con --video-url)")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
 
@@ -253,7 +263,8 @@ def main():
     if a.story_url:
         mid = publish_story(a.story_url, dry_run=a.dry_run)
     elif a.video_url:
-        mid = publish_reel(a.video_url, caption, dry_run=a.dry_run)
+        mid = publish_reel(a.video_url, caption, dry_run=a.dry_run,
+                           cover_url=a.cover_url)
     elif a.image_urls:
         urls = [u.strip() for u in a.image_urls.split(",") if u.strip()]
         mid = publish_carousel(urls, caption, dry_run=a.dry_run)
