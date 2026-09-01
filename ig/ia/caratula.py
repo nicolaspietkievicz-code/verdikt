@@ -28,15 +28,17 @@ S = 2
 W, H = 1080 * S, 1920 * S
 
 _PREAMBULO = (
-    "Vertical 9:16 portrait social cover for a financial-analysis app called Verdikt. "
+    "Vertical 9:16 portrait social cover for a financial-analysis app. "
     "Sober editorial finance aesthetic, NOT playful. Very dark near-black "
-    "background (#07090C) with a faint technical grid and thin data lines. "
-    "Restrained palette: deep charcoal, muted green (#2FBF71) as the only "
-    "accent, cool grey. Abstract shapes, candlestick-like bars, a subtle "
-    "upward recovery curve. No people, no faces, no hands, no photorealism, "
-    "no logos of real companies, no stock-photo look, no lens flare, no 3D "
-    "render, no emoji, no gradients of many colors. Flat, precise, a lot of "
-    "negative space in the lower third for text to be added later. "
+    "background (#07090C) with a faint technical grid. Restrained palette: "
+    "deep charcoal, one muted green (#2FBF71) accent, cool grey. Abstract "
+    "shapes; any candlestick bars or chart lines must be VERY faint, almost "
+    "invisible, never the focus. Flat, precise, editorial. "
+    "ABSOLUTELY NO text, letters, words, numbers, labels, captions, "
+    "watermarks, signatures or typography of any kind, anywhere in the image. "
+    "No people, faces, hands, photorealism, real company logos, stock-photo "
+    "look, lens flare, glossy 3D render, or emoji. "
+    "Keep the top area and the entire lower third clear and empty. "
 )
 
 
@@ -55,12 +57,21 @@ def _marca(im: Image.Image, d: dict) -> Image.Image:
     d_ = ImageDraw.Draw(im, "RGBA")
     vcol = mc.VCOL.get(d["verdict"], mc.GREEN)
 
-    # Scrim de abajo para que el pie se lea sobre cualquier imagen.
-    scrim = Image.new("RGBA", (W, int(H * 0.30)), (0, 0, 0, 0))
-    sd = ImageDraw.Draw(scrim)
-    for i in range(scrim.height):
-        sd.line([(0, i), (W, i)], fill=(7, 9, 12, int(235 * i / scrim.height)))
-    im.paste(scrim, (0, H - scrim.height), scrim)
+    # Scrims arriba y abajo: la marca se lee sobre cualquier imagen, y el de
+    # arriba TAPA cualquier texto que el modelo de imagen haya metido de prepo
+    # (gpt-image-1 escribe "VERDIKT" aunque se le diga que no).
+    bot = Image.new("RGBA", (W, int(H * 0.30)), (0, 0, 0, 0))
+    bd_ = ImageDraw.Draw(bot)
+    for i in range(bot.height):
+        bd_.line([(0, i), (W, i)], fill=(7, 9, 12, int(235 * i / bot.height)))
+    im.paste(bot, (0, H - bot.height), bot)
+
+    top = Image.new("RGBA", (W, int(H * 0.20)), (0, 0, 0, 0))
+    td_ = ImageDraw.Draw(top)
+    for i in range(top.height):
+        td_.line([(0, i), (W, i)],
+                 fill=(7, 9, 12, int(245 * (1 - i / top.height))))
+    im.paste(top, (0, 0), top)
 
     pad = 60 * S
     # Cabecera: la V + VERDIKT

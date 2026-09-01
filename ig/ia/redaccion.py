@@ -51,7 +51,9 @@ Te paso los datos de un activo y devolves SOLO un objeto JSON con estas claves:
   * estilo: editorial financiero, plano, preciso, con aire; NADA de personas,
     caras, manos, fotos, logos de empresas reales, estetica de stock, 3D
     brillante, ni emojis
-  * dejar el tercio inferior despejado para sobreimprimir el ticker y el score
+  * SIN NINGUN texto, letra, numero ni cartel dentro de la imagen (la marca y
+    el ticker se sobreimprimen despues)
+  * dejar la franja de arriba y el tercio inferior despejados
   Escribilo como instruccion directa a un generador de imagenes, 4 a 8 frases."""
 
 
