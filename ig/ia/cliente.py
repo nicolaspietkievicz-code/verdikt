@@ -97,7 +97,6 @@ def chat(system: str, user: str, *, json_out: bool = True, timeout: int = 60) ->
     """Una vuelta de chat. Devuelve el texto crudo (si json_out, un objeto JSON
     como string)."""
     if _provider() == "gemini":
-        model = _env("GEMINI_TEXT_MODEL") or "gemini-flash-latest"
         body = {
             "systemInstruction": {"parts": [{"text": system}]},
             "contents": [{"role": "user", "parts": [{"text": user}]}],
@@ -105,13 +104,21 @@ def chat(system: str, user: str, *, json_out: bool = True, timeout: int = 60) ->
         }
         if json_out:
             body["generationConfig"]["responseMimeType"] = "application/json"
-        data = _req(f"{_GEMINI}/models/{model}:generateContent", body,
-                    {"x-goog-api-key": _env("GEMINI_API_KEY")}, timeout)
-        try:
-            parts = data["candidates"][0]["content"]["parts"]
-            return "".join(p.get("text", "") for p in parts)
-        except (KeyError, IndexError):
-            raise IAError(f"Gemini sin texto: {str(data)[:400]}")
+        # El free tier tira 503 ("overloaded") en rachas. Ademas de reintentar,
+        # se prueban modelos alternativos: son pools de capacidad distintos.
+        modelos = [_env("GEMINI_TEXT_MODEL") or "gemini-flash-latest",
+                   "gemini-3.5-flash", "gemini-flash-lite-latest"]
+        ultimo = None
+        for model in dict.fromkeys(modelos):
+            try:
+                data = _req(f"{_GEMINI}/models/{model}:generateContent", body,
+                            {"x-goog-api-key": _env("GEMINI_API_KEY")}, timeout)
+                parts = data["candidates"][0]["content"]["parts"]
+                return "".join(p.get("text", "") for p in parts)
+            except (IAError, KeyError, IndexError) as e:
+                print(f"  modelo {model} no anduvo ({str(e)[:120]})")
+                ultimo = e
+        raise IAError(f"Ningun modelo de texto respondio. Ultimo: {ultimo}")
 
     model = _env("OPENAI_TEXT_MODEL") or "gpt-4.1-mini"
     body = {"model": model, "temperature": 0.7,
