@@ -1,15 +1,15 @@
-caratula: mia-marca
+caratula: 0
 descartar: no
 
 <!--
-  caratula:  0 (plantilla) · mia (la tuya)
+  caratula:  0 (plantilla) · 1 · 2 · 3
   descartar: 'si' = no publicar hoy, saltear este activo.
   Guardá y commiteá: el reel se publica solo en ~2 min.
 -->
 
-# XTZ · CAUTELA 33/100
+# GS · NEUTRAL 51/100
 
-crypto — Tezos
+stock — Goldman Sachs
 
 ## Prompt para ChatGPT (carátula)
 
@@ -17,17 +17,17 @@ Copiá esto en ChatGPT, ajustá lo que quieras, bajá la imagen,
 guardala en esta carpeta como `cover-mia.png` y poné `caratula: mia` arriba.
 
 ```
-Un gráfico técnico minimalista y conceptual en formato vertical 9:16. El fondo es de color negro mate (#07090C). En el centro de la composición, una línea fina y discontinua de color verde apagado (#2FBF71) avanza de forma ascendente pero débil. Muy por encima de ella, una línea gris fría, gruesa y continua, traza una curva descendente que actúa como una barrera pesada e inalcanzable. El espacio entre ambas líneas es amplio, enfatizando la distancia. Estilo de ilustración editorial financiera, plano, vectorial, con mucho aire y espacio negativo. Sin texto, sin personas, sin velas japonesas, sin logos ni elementos tridimensionales. Dejar el tercio inferior de la imagen completamente despejado.
+Ilustración conceptual de estilo editorial financiero para portada vertical de Instagram (9:16). Una estructura arquitectónica minimalista donde una viga sólida y recta de color gris claro sostiene desde abajo a un bloque de piedra oscuro que se está deslizando levemente hacia un lado. La composición es limpia, con mucho aire y espacio vacío. El fondo es casi negro (#07090C), con líneas de guía grises muy finas y un sutil trazo verde apagado (#2FBF71) que resalta el punto de apoyo. Estilo gráfico plano, técnico, vectorial de alta precisión, sin texturas ruidosas. Evitar personas, manos, rostros, logos corporativos y elementos 3D brillantes. Dejar el tercio inferior completamente libre de elementos para texto.
 ```
 
 ## Caption
 
-    Tezos registra un veredicto de cautela con un score de 33 sobre 100.
-    Aunque el volumen acompaña el rebote del 10% en el último mes, la tendencia de fondo sigue siendo bajista.
-    El precio cotiza un 29% por debajo de su media móvil de 200 días, la zona que necesita recuperar para cambiar de sesgo.
+    Goldman Sachs entra en zona de indecisión con un score de 51 sobre 100 y veredicto neutral.
+    Aunque la tendencia de largo plazo se sostiene sobre la media de 200 días, el impulso de corto plazo se debilitó con el cruce negativo del MACD.
+    El nivel clave a vigilar son los 942.70 dólares; perder ese soporte comprometería la estructura alcista principal.
     
     El score va de 0 a 100 y resume el panorama tecnico del activo. Se recalcula todos los dias con el cierre.
     
 
 ---
-Archivos de carátula en la carpeta: cover-plantilla.png
+Archivos de carátula en la carpeta: cover-1.png, cover-2.png, cover-3.png

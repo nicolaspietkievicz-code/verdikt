@@ -1,6 +1,6 @@
-Tezos registra un veredicto de cautela con un score de 33 sobre 100.
-Aunque el volumen acompaña el rebote del 10% en el último mes, la tendencia de fondo sigue siendo bajista.
-El precio cotiza un 29% por debajo de su media móvil de 200 días, la zona que necesita recuperar para cambiar de sesgo.
+Goldman Sachs entra en zona de indecisión con un score de 51 sobre 100 y veredicto neutral.
+Aunque la tendencia de largo plazo se sostiene sobre la media de 200 días, el impulso de corto plazo se debilitó con el cruce negativo del MACD.
+El nivel clave a vigilar son los 942.70 dólares; perder ese soporte comprometería la estructura alcista principal.
 
 El score va de 0 a 100 y resume el panorama tecnico del activo. Se recalcula todos los dias con el cierre.
 
