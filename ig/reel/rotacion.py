@@ -16,6 +16,12 @@ falta el render explota y ese dia no hay posteo. Al 28/07 pasaron los 135.
 
 Si se suma un activo al catalogo, conviene correr esa verificacion antes de
 meterlo aca.
+
+BAJAS 2026-09-01: EOS e ICX salieron. Los proveedores de datos les cortaron el
+feed (EOS se renombro a Vaulta), asi que /verdict/crypto/EOS devuelve 404. Como
+el reel NO avanza la rotacion si el render falla, EOS quedo de tapon y frozo
+los tres reels diarios desde el 28/08. Ademas de sacarlos de aca, `ig_daily.py`
+ahora sondea el endpoint antes de elegir y saltea cualquier activo que de 404.
 """
 
 ACCIONES = [
@@ -36,10 +42,10 @@ ACCIONES = [
 CRIPTOS = [
     "BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "DOGE", "AVAX",
     "MATIC", "LINK", "DOT", "LTC", "TRX", "UNI", "ATOM", "BCH",
-    "XLM", "ETC", "FIL", "AAVE", "ALGO", "XMR", "XTZ", "EOS",
+    "XLM", "ETC", "FIL", "AAVE", "ALGO", "XMR", "XTZ",
     "MKR", "NEO", "DASH", "ZEC", "COMP", "SNX", "CRV", "YFI",
     "BAT", "MANA", "SAND", "GRT", "ENJ", "CHZ", "ZRX", "KSM",
-    "QTUM", "OMG", "ICX", "SUSHI",
+    "QTUM", "OMG", "SUSHI",
 ]
 
 
