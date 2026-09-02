@@ -1,0 +1,38 @@
+# Prueba de render de la placa en CI: confirma que Playwright + las fuentes
+# empacadas rinden igual que en local. NO publica nada; sube el PNG como
+# artifact para descargar y mirar. En fase 2 esto se reemplaza por el
+# enganche real a ig-daily.yml.
+name: Placa · prueba de render
+
+on:
+  workflow_dispatch:
+    inputs:
+      activo:
+        description: "SIMBOLO CLASE (vacío = nº1 del ranking)"
+        default: ""
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install pillow
+      - run: npm install --no-save playwright && npx playwright install --with-deps chromium
+
+      - name: Render de la placa
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: python make-ig-placa.py veredicto ${{ inputs.activo }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: placa
+          path: |
+            ig/placa/out/*.png
+            ig/placa/out/*.txt
+            ig/placa/screen.png
