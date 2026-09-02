@@ -1,0 +1,243 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Verdikt · placa</title>
+<style>
+  @font-face { font-family: 'Playfair'; src: url('../fonts/PlayfairDisplay.ttf'); font-weight: 400 900; }
+  @font-face { font-family: 'InterV'; src: url('../fonts/Inter-Bold.ttf'); font-weight: 700; }
+  @font-face { font-family: 'InterV'; src: url('../fonts/Inter-Regular.ttf'); font-weight: 400; }
+  @font-face { font-family: 'CascadiaV'; src: url('../fonts/CascadiaCode-Bold.ttf'); font-weight: 700; }
+  @font-face { font-family: 'CascadiaV'; src: url('../fonts/CascadiaCode-Regular.ttf'); font-weight: 400; }
+
+  :root {
+    --bg: #071019; --band: #0D1722; --border: #1E3342;
+    --text: #E9EFF3; --dim: #8DA1AE; --faint: #536571;
+    --green: #22C55E;
+    --buy: #22C55E; --acc: #5FD693; --neu: #E0B341; --cau: #E8905A; --avo: #F2607A;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1350px; overflow: hidden;
+    background: var(--bg); color: var(--text);
+    font-family: 'InterV', system-ui, sans-serif; }
+
+  #stage { position: relative; width: 1080px; height: 1350px; overflow: hidden; }
+
+  /* ---- fondo: imagen + oscurecido + grilla de marca ---- */
+  #fondo { position: absolute; inset: 0;
+    background-size: cover; background-position: center;
+    filter: brightness(1.5) contrast(1.05) saturate(1.1); }
+  #oscurece { position: absolute; inset: 0;
+    background:
+      linear-gradient(180deg, rgba(7,16,25,.5) 0%, rgba(7,16,25,.28) 45%, rgba(7,16,25,.8) 100%),
+      linear-gradient(90deg, rgba(7,16,25,.95) 0%, rgba(7,16,25,.62) 46%, rgba(7,16,25,.22) 100%); }
+  #grilla { position: absolute; inset: 0; opacity: .5;
+    background-image:
+      repeating-linear-gradient(0deg, #16232E 0 1px, transparent 1px 60px),
+      repeating-linear-gradient(90deg, #16232E 0 1px, transparent 1px 60px); }
+  #halo { position: absolute; right: -180px; top: 120px; width: 900px; height: 900px;
+    background: radial-gradient(closest-side, rgba(34,197,94,.20), transparent 70%); }
+
+  #cont { position: absolute; inset: 0; padding: 62px 66px 56px;
+    display: flex; flex-direction: column; }
+
+  /* ---- barra superior ---- */
+  .topbar { display: flex; justify-content: space-between; align-items: center;
+    font-family: 'CascadiaV', monospace; font-size: 17px; letter-spacing: 2.5px;
+    color: var(--dim); text-transform: uppercase;
+    border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+  .topbar .fecha { color: var(--green); }
+
+  /* ---- masthead ---- */
+  .masthead { margin-top: 26px; }
+  /* Playfair trae cifras de estilo antiguo por defecto ("200" parece "2oo").
+     Se fuerzan cifras de caja alta en todo lo que pueda llevar números. */
+  .masthead h1, .activo, .titular { font-variant-numeric: lining-nums;
+    font-feature-settings: "lnum" 1, "onum" 0; }
+  .masthead h1 { font-family: 'Playfair', serif; font-weight: 900;
+    font-size: 132px; line-height: .92; letter-spacing: -1px; }
+  .masthead h1 .g { color: var(--green); }
+  .masthead .tagline { font-family: 'CascadiaV', monospace; font-size: 18px;
+    letter-spacing: 4px; color: var(--dim); text-transform: uppercase; margin-top: 12px; }
+
+  /* ---- cuerpo: texto a la izquierda, teléfono a la derecha ---- */
+  .cuerpo { flex: 1; display: grid; grid-template-columns: 600px 1fr;
+    gap: 30px; margin-top: 40px; }
+
+  .kicker { font-family: 'CascadiaV', monospace; font-size: 19px; letter-spacing: 4px;
+    color: var(--green); text-transform: uppercase; }
+  .kicker::before { content: ""; display: inline-block; width: 44px; height: 2px;
+    background: var(--green); vertical-align: middle; margin-right: 14px; }
+
+  .activo { font-family: 'Playfair', serif; font-weight: 800; font-size: 76px;
+    line-height: 1.02; margin-top: 20px; }
+  .ticker { font-family: 'CascadiaV', monospace; font-size: 21px; letter-spacing: 1px;
+    color: var(--dim); margin-top: 10px; }
+
+  .veredicto-row { display: flex; align-items: center; gap: 26px; margin-top: 30px; }
+  .score { font-weight: 700; font-size: 108px; line-height: 1; letter-spacing: -3px; }
+  .score small { font-family: 'CascadiaV', monospace; font-weight: 400;
+    font-size: 26px; color: var(--faint); letter-spacing: 0; }
+  .pill { font-family: 'CascadiaV', monospace; font-weight: 700; font-size: 26px;
+    letter-spacing: 2px; padding: 12px 24px; border: 2px solid currentColor;
+    border-radius: 8px; }
+
+  .titular { font-family: 'Playfair', serif; font-style: italic; font-weight: 500;
+    font-size: 33px; line-height: 1.34; color: var(--text); margin-top: 30px;
+    border-left: 3px solid var(--green); padding-left: 22px; }
+
+  .porque { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; margin-top: 38px; }
+  .porque h3 { font-family: 'CascadiaV', monospace; font-size: 16px; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--dim);
+    border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 14px; }
+  .porque li { list-style: none; font-size: 21px; line-height: 1.28; color: var(--text);
+    padding-left: 20px; position: relative; margin-bottom: 13px; }
+  .porque li::before { content: ""; position: absolute; left: 0; top: 10px;
+    width: 8px; height: 8px; border-radius: 2px; }
+  .porque .fav li::before { background: var(--green); }
+  .porque .con li::before { background: var(--avo); }
+
+  /* ---- teléfono ---- */
+  .telewrap { position: relative; display: flex; align-items: center; justify-content: center; }
+  .phone { width: 340px; height: 720px; border-radius: 46px;
+    background: #05090d; border: 3px solid #223140;
+    box-shadow: 0 40px 90px rgba(0,0,0,.6), 0 0 0 2px rgba(34,197,94,.08);
+    transform: rotate(3.5deg); overflow: hidden; position: relative; }
+  .phone .notch { position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    width: 116px; height: 26px; background: #05090d; border-radius: 14px; z-index: 2; }
+  .phone .screen { position: absolute; inset: 8px; border-radius: 40px; overflow: hidden;
+    background: #071019; }
+  .phone .screen img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+  .phone .noscreen { position: absolute; inset: 8px; border-radius: 40px;
+    background: #0D1722; display: flex; align-items: center; justify-content: center;
+    color: var(--faint); font-family: 'CascadiaV', monospace; font-size: 15px; }
+
+  /* ---- pie ---- */
+  .pie { margin-top: 28px; border-top: 1px solid var(--border); padding-top: 18px;
+    display: flex; justify-content: space-between; align-items: flex-end; gap: 30px; }
+  .pilares { display: flex; gap: 44px; }
+  .pilares div { font-family: 'CascadiaV', monospace; font-size: 13px; letter-spacing: 1px;
+    color: var(--dim); text-transform: uppercase; white-space: nowrap; }
+  .pilares div b { display: block; color: var(--text); font-size: 15px;
+    letter-spacing: 2px; margin-bottom: 4px; }
+  .dominio { font-family: 'CascadiaV', monospace; font-size: 22px; color: var(--green);
+    letter-spacing: 1px; white-space: nowrap; }
+
+  /* ---- V de marca (svg) ---- */
+  .vmark { width: 40px; height: 40px; }
+</style>
+
+<div id="stage">
+  <div id="fondo"></div>
+  <div id="oscurece"></div>
+  <div id="grilla"></div>
+  <div id="halo"></div>
+
+  <div id="cont">
+    <div class="topbar">
+      <span id="tags">FINANZAS · CRIPTO · CEDEARS · WALL ST</span>
+      <span class="fecha" id="fecha">—</span>
+    </div>
+
+    <div class="masthead">
+      <h1><span class="g">V</span>ERDIKT</h1>
+      <div class="tagline">El veredicto de tus inversiones</div>
+    </div>
+
+    <div class="cuerpo">
+      <div class="izq">
+        <div class="kicker" id="kicker">VEREDICTO DEL DÍA</div>
+        <div class="activo" id="activo">—</div>
+        <div class="ticker" id="ticker">—</div>
+
+        <div class="veredicto-row">
+          <div class="score" id="score">—<small>/100</small></div>
+          <div class="pill" id="pill">—</div>
+        </div>
+
+        <div class="titular" id="titular">—</div>
+
+        <div class="porque">
+          <div>
+            <h3>A favor</h3>
+            <ul class="fav" id="fav"></ul>
+          </div>
+          <div>
+            <h3>En contra</h3>
+            <ul class="con" id="con"></ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="telewrap">
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="screen" id="screen">
+            <div class="noscreen">app.verdikt.finance</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pie">
+      <div class="pilares">
+        <div><b>IA propia</b>modelos reales</div>
+        <div><b>Riesgo</b>volatilidad + noticias</div>
+        <div><b>Todo el mercado</b>acciones · cedears · cripto</div>
+      </div>
+      <div class="dominio">app.verdikt.finance</div>
+    </div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+  const D = window.DATA || {};
+  const VCOL = { COMPRA: 'var(--buy)', ACUMULAR: 'var(--acc)', NEUTRAL: 'var(--neu)',
+                 CAUTELA: 'var(--cau)', EVITAR: 'var(--avo)' };
+
+  const set = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
+
+  set('fecha', D.fecha || '');
+  set('kicker', D.kicker || 'VEREDICTO DEL DÍA');
+  set('activo', D.name || '');
+  set('ticker', `${D.symbol || ''} · ${D.mercado || ''}`);
+  document.getElementById('score').innerHTML = `${D.score ?? '—'}<small>/100</small>`;
+
+  const pill = document.getElementById('pill');
+  pill.textContent = D.verdict || '';
+  pill.style.color = VCOL[D.verdict] || 'var(--dim)';
+
+  document.getElementById('titular').textContent = D.titular ? `“${D.titular}”` : '';
+
+  const li = arr => (arr || []).map(t => `<li>${t}</li>`).join('');
+  document.getElementById('fav').innerHTML = li(D.afavor);
+  document.getElementById('con').innerHTML = li(D.encontra);
+  if (!(D.encontra || []).length) {
+    document.getElementById('con').innerHTML = '<li style="color:var(--faint)">sin señales en contra</li>';
+  }
+
+  // render.js espera a esta bandera: las dos imágenes (fondo + captura) ya
+  // resolvieron (cargaron o fallaron), así no dispara el screenshot a medias.
+  window.__placaReady = false;
+  let pendientes = 2;
+  const listo = () => { if (--pendientes <= 0) window.__placaReady = true; };
+
+  // La captura de la app, si existe. Si falla (404), queda el placeholder.
+  const img = new Image();
+  img.onload = () => {
+    const s = document.getElementById('screen');
+    s.innerHTML = '';
+    s.appendChild(img);
+    listo();
+  };
+  img.onerror = listo;
+  img.src = 'screen.png?' + Date.now();
+
+  // Fondo rotado por fecha (día del mes % cantidad). El build pasa la lista.
+  const FONDOS = (D.fondos && D.fondos.length) ? D.fondos : ['fondo-1.png'];
+  const idx = (new Date().getDate()) % FONDOS.length;
+  const fondoUrl = `fondos/${FONDOS[idx]}`;
+  const pre = new Image();
+  pre.onload = pre.onerror = listo;
+  pre.src = fondoUrl;
+  document.getElementById('fondo').style.backgroundImage = `url('${fondoUrl}')`;
+</script>

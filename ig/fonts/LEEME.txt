@@ -1,0 +1,8 @@
+Fuentes empacadas para que el render (reel + placas) rinda igual en local y en
+GitHub Actions, sin depender de fuentes del sistema.
+
+- Inter (Regular, Bold) — SIL Open Font License 1.1 — https://rsms.me/inter/
+- Cascadia Code (Regular, Bold) — SIL Open Font License 1.1 —
+  https://github.com/microsoft/cascadia-code
+- Playfair Display (variable) — SIL Open Font License 1.1 —
+  https://github.com/google/fonts/tree/main/ofl/playfairdisplay

@@ -13,6 +13,13 @@ ig/reel/data.js
 ig/reel/track.wav
 ig/reel/frames/
 ig/reel/verdict.json
+
+# Generados por make-ig-placa.py (la plantilla, los fondos y build.py SI van al
+# repo; esto es lo efimero de cada corrida).
+ig/placa/data.js
+ig/placa/caption.txt
+ig/placa/screen.png
+ig/placa/out/
 node_modules/
 
 ig/media/reel_asset.txt
