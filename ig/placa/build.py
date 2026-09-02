@@ -42,6 +42,13 @@ CIERRE_CAPTION = [
 ]
 
 
+def _hoy_art() -> datetime.date:
+    """Fecha en hora argentina (UTC-3). En CI el runner esta en UTC, y de noche
+    ART el dia ya cambio alla — la placa tiene que decir el dia de aca."""
+    return (datetime.datetime.now(datetime.timezone.utc)
+            - datetime.timedelta(hours=3)).date()
+
+
 def _fecha_larga(d: datetime.date) -> str:
     return f"{d.day} de {_MESES[d.month - 1]} de {d.year}"
 
@@ -64,7 +71,7 @@ def _fmt_num(v) -> str:
 
 
 def _dump(payload: dict, caption: str) -> None:
-    payload.setdefault("fecha", _fecha_larga(datetime.date.today()))
+    payload.setdefault("fecha", _fecha_larga(_hoy_art()))
     fondos_dir = os.path.join(AQUI, "fondos")
     payload["fondos"] = sorted(f for f in os.listdir(fondos_dir)
                                if f.endswith(".png")) if os.path.isdir(fondos_dir) else []
@@ -99,7 +106,7 @@ def build_veredicto(sym: str = "", clase: str = "") -> dict:
     clase = clase or "stock"
     print(f"placa veredicto de {sym} ({clase})")
     d = bd.preparar(bd.pedir(sym, clase))
-    hoy = datetime.date.today()
+    hoy = _hoy_art()
     r = d["razones"]
     pos = [x["titulo"] for x in r if x["tipo"] == "positivo"]
     neg = [x["titulo"] for x in r if x["tipo"] == "negativo"]
@@ -153,7 +160,7 @@ def build_termometro() -> dict:
         "indices": indices, "ccl": _fmt_num(ccl) if ccl else "—",
         "nota": nota,
     }, "\n".join([
-        f"Termometro del mercado — {_fecha_larga(datetime.date.today())}", "",
+        f"Termometro del mercado — {_fecha_larga(_hoy_art())}", "",
         f"Animo general: {mood.get('label', 'NEUTRAL')} ({mood.get('score', 50)}/100)",
         f"{bull}% alcistas · {bear}% bajistas",
         "",
@@ -195,7 +202,7 @@ def build_cambios() -> dict:
         "subtitle": _dm(ch.get("prev_date", "")),
         "items": filas, "nota": nota,
     }, "\n".join([
-        f"Cambios de veredicto — {_fecha_larga(datetime.date.today())}", "",
+        f"Cambios de veredicto — {_fecha_larga(_hoy_art())}", "",
     ] + [f"{it['symbol']}: {it['prev_verdict']} → {it['verdict']} "
          f"({it['prev_score']} → {it['score']})" for it in items]
       + ["", nota] + CIERRE_CAPTION))
