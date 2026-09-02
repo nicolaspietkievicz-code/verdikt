@@ -21,9 +21,7 @@
 
   #stage { position: relative; width: 1080px; height: 1350px; overflow: hidden; }
 
-  /* ---- fondo: imagen + oscurecido + grilla de marca ---- */
-  #fondo { position: absolute; inset: 0;
-    background-size: cover; background-position: center;
+  #fondo { position: absolute; inset: 0; background-size: cover; background-position: center;
     filter: brightness(1.5) contrast(1.05) saturate(1.1); }
   #oscurece { position: absolute; inset: 0;
     background:
@@ -35,61 +33,67 @@
       repeating-linear-gradient(90deg, #16232E 0 1px, transparent 1px 60px); }
   #halo { position: absolute; right: -180px; top: 120px; width: 900px; height: 900px;
     background: radial-gradient(closest-side, rgba(34,197,94,.20), transparent 70%); }
+  /* educativa: sin foto, el fondo es solo la grilla + halo centrado */
+  body.educativa #fondo, body.educativa #oscurece { display: none; }
+  body.educativa #halo { right: 50%; transform: translateX(50%); top: 260px; opacity: .8; }
 
-  #cont { position: absolute; inset: 0; padding: 62px 66px 56px;
+  #cont { position: absolute; inset: 0; padding: 62px 66px 54px;
     display: flex; flex-direction: column; }
 
-  /* ---- barra superior ---- */
   .topbar { display: flex; justify-content: space-between; align-items: center;
     font-family: 'CascadiaV', monospace; font-size: 17px; letter-spacing: 2.5px;
     color: var(--dim); text-transform: uppercase;
     border-bottom: 1px solid var(--border); padding-bottom: 16px; }
   .topbar .fecha { color: var(--green); }
 
-  /* ---- masthead ---- */
-  .masthead { margin-top: 26px; }
-  /* Playfair trae cifras de estilo antiguo por defecto ("200" parece "2oo").
-     Se fuerzan cifras de caja alta en todo lo que pueda llevar números. */
-  .masthead h1, .activo, .titular { font-variant-numeric: lining-nums;
-    font-feature-settings: "lnum" 1, "onum" 0; }
+  .masthead { margin-top: 24px; }
+  .masthead h1, .activo, .titular, .edu-q, .num {
+    font-variant-numeric: lining-nums; font-feature-settings: "lnum" 1, "onum" 0; }
   .masthead h1 { font-family: 'Playfair', serif; font-weight: 900;
-    font-size: 132px; line-height: .92; letter-spacing: -1px; }
+    font-size: 124px; line-height: .92; letter-spacing: -1px; }
   .masthead h1 .g { color: var(--green); }
   .masthead .tagline { font-family: 'CascadiaV', monospace; font-size: 18px;
     letter-spacing: 4px; color: var(--dim); text-transform: uppercase; margin-top: 12px; }
 
-  /* ---- cuerpo: texto a la izquierda, teléfono a la derecha ---- */
-  .cuerpo { flex: 1; display: grid; grid-template-columns: 600px 1fr;
-    gap: 30px; margin-top: 40px; }
+  #cuerpo { flex: 1; margin-top: 36px; }
+  body.educativa #cuerpo { display: flex; flex-direction: column; justify-content: center;
+    margin-top: 0; padding-bottom: 40px; }
+  body.educativa .edu-q { font-size: 82px; }
+  body.educativa .edu-list li { font-size: 30px; margin-bottom: 28px; }
+  body.educativa .edu-body { font-size: 34px; }
 
   .kicker { font-family: 'CascadiaV', monospace; font-size: 19px; letter-spacing: 4px;
     color: var(--green); text-transform: uppercase; }
   .kicker::before { content: ""; display: inline-block; width: 44px; height: 2px;
     background: var(--green); vertical-align: middle; margin-right: 14px; }
 
-  .activo { font-family: 'Playfair', serif; font-weight: 800; font-size: 76px;
-    line-height: 1.02; margin-top: 20px; }
+  /* ---- columnas texto / teléfono ---- */
+  .cols { display: grid; grid-template-columns: 600px 1fr; gap: 30px; height: 100%; }
+  .izq { min-width: 0; }
+
+  .activo { font-family: 'Playfair', serif; font-weight: 800; font-size: 74px;
+    line-height: 1.02; margin-top: 18px; }
   .ticker { font-family: 'CascadiaV', monospace; font-size: 21px; letter-spacing: 1px;
     color: var(--dim); margin-top: 10px; }
 
-  .veredicto-row { display: flex; align-items: center; gap: 26px; margin-top: 30px; }
-  .score { font-weight: 700; font-size: 108px; line-height: 1; letter-spacing: -3px; }
+  .veredicto-row { display: flex; align-items: center; gap: 26px; margin-top: 28px; }
+  .score { font-weight: 700; font-size: 104px; line-height: 1; letter-spacing: -3px;
+    font-variant-numeric: lining-nums; }
   .score small { font-family: 'CascadiaV', monospace; font-weight: 400;
     font-size: 26px; color: var(--faint); letter-spacing: 0; }
-  .pill { font-family: 'CascadiaV', monospace; font-weight: 700; font-size: 26px;
-    letter-spacing: 2px; padding: 12px 24px; border: 2px solid currentColor;
-    border-radius: 8px; }
+  .pill { font-family: 'CascadiaV', monospace; font-weight: 700; font-size: 25px;
+    letter-spacing: 2px; padding: 12px 22px; border: 2px solid currentColor; border-radius: 8px; }
 
   .titular { font-family: 'Playfair', serif; font-style: italic; font-weight: 500;
-    font-size: 33px; line-height: 1.34; color: var(--text); margin-top: 30px;
+    font-size: 32px; line-height: 1.34; margin-top: 28px;
     border-left: 3px solid var(--green); padding-left: 22px; }
 
-  .porque { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; margin-top: 38px; }
-  .porque h3 { font-family: 'CascadiaV', monospace; font-size: 16px; letter-spacing: 3px;
+  .porque { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 34px; }
+  .porque h3 { font-family: 'CascadiaV', monospace; font-size: 15px; letter-spacing: 3px;
     text-transform: uppercase; color: var(--dim);
     border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 14px; }
-  .porque li { list-style: none; font-size: 21px; line-height: 1.28; color: var(--text);
-    padding-left: 20px; position: relative; margin-bottom: 13px; }
+  .porque li { list-style: none; font-size: 21px; line-height: 1.28;
+    padding-left: 20px; position: relative; margin-bottom: 12px; }
   .porque li::before { content: ""; position: absolute; left: 0; top: 10px;
     width: 8px; height: 8px; border-radius: 2px; }
   .porque .fav li::before { background: var(--green); }
@@ -103,26 +107,61 @@
     transform: rotate(3.5deg); overflow: hidden; position: relative; }
   .phone .notch { position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
     width: 116px; height: 26px; background: #05090d; border-radius: 14px; z-index: 2; }
-  .phone .screen { position: absolute; inset: 8px; border-radius: 40px; overflow: hidden;
-    background: #071019; }
+  .phone .screen { position: absolute; inset: 8px; border-radius: 40px; overflow: hidden; background: #071019; }
   .phone .screen img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
-  .phone .noscreen { position: absolute; inset: 8px; border-radius: 40px;
-    background: #0D1722; display: flex; align-items: center; justify-content: center;
-    color: var(--faint); font-family: 'CascadiaV', monospace; font-size: 15px; }
+  .phone .noscreen { position: absolute; inset: 8px; border-radius: 40px; background: #0D1722;
+    display: flex; align-items: center; justify-content: center; color: var(--faint);
+    font-family: 'CascadiaV', monospace; font-size: 15px; }
+
+  /* ---- termómetro ---- */
+  .mood-label { font-family: 'Playfair', serif; font-weight: 800; font-size: 66px;
+    line-height: 1.05; margin-top: 20px; }
+  .mood-bar { height: 26px; border-radius: 6px; overflow: hidden; display: flex;
+    margin-top: 24px; border: 1px solid var(--border); }
+  .mood-bar .bull { background: var(--green); }
+  .mood-bar .bear { background: var(--avo); }
+  .mood-bar .flat { background: #26333f; }
+  .mood-legend { display: flex; justify-content: space-between; font-family: 'CascadiaV', monospace;
+    font-size: 16px; color: var(--dim); margin-top: 10px; }
+  .stats { margin-top: 34px; }
+  .stats .row { display: flex; justify-content: space-between; align-items: baseline;
+    padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .stats .row .k { font-family: 'CascadiaV', monospace; font-size: 19px; letter-spacing: 1px;
+    color: var(--dim); text-transform: uppercase; }
+  .stats .row .v { font-family: 'CascadiaV', monospace; font-weight: 700; font-size: 26px; }
+  .stats .row .d { font-family: 'CascadiaV', monospace; font-size: 19px; margin-left: 12px; }
+  .up { color: var(--green); } .down { color: var(--avo); }
+
+  /* ---- cambios ---- */
+  .changes { margin-top: 26px; }
+  .changes .ch { display: grid; grid-template-columns: 150px 1fr auto; align-items: center;
+    gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .changes .sym { font-family: 'CascadiaV', monospace; font-weight: 700; font-size: 26px; }
+  .changes .flow { font-family: 'CascadiaV', monospace; font-size: 21px; letter-spacing: 1px; }
+  .changes .flow .arr { color: var(--faint); margin: 0 10px; }
+  .changes .sc { font-family: 'CascadiaV', monospace; font-size: 20px; color: var(--dim); }
+
+  /* ---- educativa ---- */
+  .edu { max-width: 900px; }
+  .edu-q { font-family: 'Playfair', serif; font-weight: 800; font-size: 74px; line-height: 1.08;
+    margin-top: 24px; }
+  .edu-q .g { color: var(--green); }
+  .edu-body { font-size: 30px; line-height: 1.5; color: var(--text); margin-top: 34px; }
+  .edu-list { margin-top: 30px; }
+  .edu-list li { list-style: none; font-size: 27px; line-height: 1.4; margin-bottom: 22px;
+    padding-left: 60px; position: relative; }
+  .edu-list li .n { position: absolute; left: 0; top: 2px; font-family: 'CascadiaV', monospace;
+    font-weight: 700; color: var(--green); font-size: 24px; }
 
   /* ---- pie ---- */
-  .pie { margin-top: 28px; border-top: 1px solid var(--border); padding-top: 18px;
+  .pie { margin-top: 26px; border-top: 1px solid var(--border); padding-top: 18px;
     display: flex; justify-content: space-between; align-items: flex-end; gap: 30px; }
   .pilares { display: flex; gap: 44px; }
   .pilares div { font-family: 'CascadiaV', monospace; font-size: 13px; letter-spacing: 1px;
     color: var(--dim); text-transform: uppercase; white-space: nowrap; }
-  .pilares div b { display: block; color: var(--text); font-size: 15px;
-    letter-spacing: 2px; margin-bottom: 4px; }
+  .pilares div b { display: block; color: var(--text); font-size: 15px; letter-spacing: 2px; margin-bottom: 4px; }
   .dominio { font-family: 'CascadiaV', monospace; font-size: 22px; color: var(--green);
     letter-spacing: 1px; white-space: nowrap; }
-
-  /* ---- V de marca (svg) ---- */
-  .vmark { width: 40px; height: 40px; }
 </style>
 
 <div id="stage">
@@ -133,7 +172,7 @@
 
   <div id="cont">
     <div class="topbar">
-      <span id="tags">FINANZAS · CRIPTO · CEDEARS · WALL ST</span>
+      <span>FINANZAS · CRIPTO · CEDEARS · WALL ST</span>
       <span class="fecha" id="fecha">—</span>
     </div>
 
@@ -142,40 +181,7 @@
       <div class="tagline">El veredicto de tus inversiones</div>
     </div>
 
-    <div class="cuerpo">
-      <div class="izq">
-        <div class="kicker" id="kicker">VEREDICTO DEL DÍA</div>
-        <div class="activo" id="activo">—</div>
-        <div class="ticker" id="ticker">—</div>
-
-        <div class="veredicto-row">
-          <div class="score" id="score">—<small>/100</small></div>
-          <div class="pill" id="pill">—</div>
-        </div>
-
-        <div class="titular" id="titular">—</div>
-
-        <div class="porque">
-          <div>
-            <h3>A favor</h3>
-            <ul class="fav" id="fav"></ul>
-          </div>
-          <div>
-            <h3>En contra</h3>
-            <ul class="con" id="con"></ul>
-          </div>
-        </div>
-      </div>
-
-      <div class="telewrap">
-        <div class="phone">
-          <div class="notch"></div>
-          <div class="screen" id="screen">
-            <div class="noscreen">app.verdikt.finance</div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div id="cuerpo"></div>
 
     <div class="pie">
       <div class="pilares">
@@ -193,46 +199,96 @@
   const D = window.DATA || {};
   const VCOL = { COMPRA: 'var(--buy)', ACUMULAR: 'var(--acc)', NEUTRAL: 'var(--neu)',
                  CAUTELA: 'var(--cau)', EVITAR: 'var(--avo)' };
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const signo = n => (n > 0 ? '+' : '') + n;
 
-  const set = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
+  document.getElementById('fecha').textContent = D.fecha || '';
+  document.body.className = D.tipo || 'veredicto';
 
-  set('fecha', D.fecha || '');
-  set('kicker', D.kicker || 'VEREDICTO DEL DÍA');
-  set('activo', D.name || '');
-  set('ticker', `${D.symbol || ''} · ${D.mercado || ''}`);
-  document.getElementById('score').innerHTML = `${D.score ?? '—'}<small>/100</small>`;
+  const cuerpo = document.getElementById('cuerpo');
 
-  const pill = document.getElementById('pill');
-  pill.textContent = D.verdict || '';
-  pill.style.color = VCOL[D.verdict] || 'var(--dim)';
-
-  document.getElementById('titular').textContent = D.titular ? `“${D.titular}”` : '';
-
-  const li = arr => (arr || []).map(t => `<li>${t}</li>`).join('');
-  document.getElementById('fav').innerHTML = li(D.afavor);
-  document.getElementById('con').innerHTML = li(D.encontra);
-  if (!(D.encontra || []).length) {
-    document.getElementById('con').innerHTML = '<li style="color:var(--faint)">sin señales en contra</li>';
+  function phone(inner) {
+    return `<div class="telewrap"><div class="phone"><div class="notch"></div>
+      <div class="screen" id="screen"><div class="noscreen">${inner || 'app.verdikt.finance'}</div></div>
+    </div></div>`;
   }
 
-  // render.js espera a esta bandera: las dos imágenes (fondo + captura) ya
-  // resolvieron (cargaron o fallaron), así no dispara el screenshot a medias.
+  if (D.tipo === 'termometro') {
+    const bull = D.bull_pct || 0, bear = D.bear_pct || 0, flat = Math.max(0, 100 - bull - bear);
+    const filas = (D.indices || []).map(i => `
+      <div class="row"><span class="k">${esc(i.name)}</span>
+        <span><span class="v">${esc(i.value)}</span>
+        <span class="d ${i.chg >= 0 ? 'up' : 'down'}">${signo(i.chg)}%</span></span></div>`).join('');
+    cuerpo.innerHTML = `<div class="cols"><div class="izq">
+      <div class="kicker">${esc(D.kicker || 'TERMÓMETRO DEL MERCADO')}</div>
+      <div class="mood-label">Ánimo <span style="color:${VCOL[D.mood_label] || 'var(--dim)'}">${esc(D.mood_label)}</span><br>${esc(D.mood_score)}<span style="font-family:'CascadiaV';font-size:34px;color:var(--faint)">/100</span></div>
+      <div class="mood-bar"><div class="bull" style="width:${bull}%"></div><div class="flat" style="width:${flat}%"></div><div class="bear" style="width:${bear}%"></div></div>
+      <div class="mood-legend"><span>${bull}% alcistas</span><span>${bear}% bajistas</span></div>
+      <div class="stats">${filas}
+        <div class="row"><span class="k">Dólar CCL</span><span class="v">${esc(D.ccl)}</span></div>
+      </div>
+      <div class="titular">${esc(D.nota)}</div>
+    </div>${phone()}</div>`;
+  } else if (D.tipo === 'cambios') {
+    const filas = (D.items || []).map(it => `
+      <div class="ch"><span class="sym">${esc(it.symbol)}</span>
+        <span class="flow"><span style="color:${VCOL[it.prev] || 'var(--dim)'}">${esc(it.prev)}</span>
+          <span class="arr">→</span><span style="color:${VCOL[it.now] || 'var(--dim)'}">${esc(it.now)}</span></span>
+        <span class="sc">${esc(it.prev_score)} → ${esc(it.score)}</span></div>`).join('');
+    cuerpo.innerHTML = `<div class="cols"><div class="izq">
+      <div class="kicker">${esc(D.kicker || 'CAMBIÓ DE OPINIÓN')}</div>
+      <div class="activo">${esc(D.title || 'El mercado cambió de opinión')}</div>
+      <div class="ticker">${esc(D.subtitle || '')}</div>
+      <div class="changes">${filas}</div>
+      <div class="titular">${esc(D.nota)}</div>
+    </div>${phone()}</div>`;
+  } else if (D.tipo === 'educativa') {
+    const body = D.items && D.items.length
+      ? `<ol class="edu-list">${D.items.map((t, i) => `<li><span class="n">${i + 1}</span>${esc(t)}</li>`).join('')}</ol>`
+      : `<div class="edu-body">${esc(D.body)}</div>`;
+    cuerpo.innerHTML = `<div class="edu">
+      <div class="kicker">${esc(D.kicker || 'APRENDÉ A LEERLO')}</div>
+      <div class="edu-q">${D.q_html || esc(D.q)}</div>
+      ${body}
+    </div>`;
+  } else {
+    // veredicto
+    cuerpo.innerHTML = `<div class="cols"><div class="izq">
+      <div class="kicker">${esc(D.kicker || 'VEREDICTO DEL DÍA')}</div>
+      <div class="activo">${esc(D.name)}</div>
+      <div class="ticker">${esc(D.symbol)} · ${esc(D.mercado)}</div>
+      <div class="veredicto-row">
+        <div class="score">${esc(D.score)}<small>/100</small></div>
+        <div class="pill" style="color:${VCOL[D.verdict] || 'var(--dim)'}">${esc(D.verdict)}</div>
+      </div>
+      <div class="titular">${D.titular ? '“' + esc(D.titular) + '”' : ''}</div>
+      <div class="porque">
+        <div><h3>A favor</h3><ul class="fav">${(D.afavor || []).map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>
+        <div><h3>En contra</h3><ul class="con">${(D.encontra || []).length
+          ? (D.encontra).map(t => `<li>${esc(t)}</li>`).join('')
+          : '<li style="color:var(--faint)">sin señales en contra</li>'}</ul></div>
+      </div>
+    </div>${phone()}</div>`;
+  }
+
+  // ---- carga de imágenes (fondo + captura) ----
   window.__placaReady = false;
-  let pendientes = 2;
+  const necesitaScreen = D.tipo !== 'educativa';
+  let pendientes = 1 + (necesitaScreen ? 1 : 0);
   const listo = () => { if (--pendientes <= 0) window.__placaReady = true; };
 
-  // La captura de la app, si existe. Si falla (404), queda el placeholder.
-  const img = new Image();
-  img.onload = () => {
-    const s = document.getElementById('screen');
-    s.innerHTML = '';
-    s.appendChild(img);
-    listo();
-  };
-  img.onerror = listo;
-  img.src = 'screen.png?' + Date.now();
+  if (necesitaScreen) {
+    const img = new Image();
+    img.onload = () => {
+      const s = document.getElementById('screen');
+      if (s) { s.innerHTML = ''; s.appendChild(img); }
+      listo();
+    };
+    img.onerror = listo;
+    img.src = 'screen.png?' + Date.now();
+  }
 
-  // Fondo rotado por fecha (día del mes % cantidad). El build pasa la lista.
   const FONDOS = (D.fondos && D.fondos.length) ? D.fondos : ['fondo-1.png'];
   const idx = (new Date().getDate()) % FONDOS.length;
   const fondoUrl = `fondos/${FONDOS[idx]}`;

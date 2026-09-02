@@ -1,64 +1,44 @@
 # LA IMAGEN DEL DIA del Instagram de Verdikt. Una por dia, siempre.
 #
-# Los REELS ya no salen de aca: desde el 2026-07-28 viven en ig-reels.yml, con
-# tres corridas repartidas. Y las HISTORIAS estan en ig-historia.yml. Este
-# workflow se ocupa de una sola cosa, que es la imagen.
+# Desde 09/2026 es una PLACA DE INFO diseñada (HTML + Playwright), no el
+# carrusel Pillow de antes. `make-ig-placa.py hoy` elige que placa toca:
+#   viernes -> termometro del mercado
+#   domingo -> educativa
+#   entre semana -> "cambio de opinion" si hubo cambios de veredicto, si no el
+#                   "veredicto del dia" (el nº1 del ranking)
 #
-# Publica UNA de estas dos, en este orden de prioridad:
+# Reels -> ig-reels.yml / ig-pendiente.yml. Historias -> ig-historia.yml.
 #
-#   cambios de veredicto -> si hoy hubo. Es un CARRUSEL: caratula, una placa por
-#     activo y cierre. Se genera con datos vivos, se commitea/pushea a este repo
-#     (para que cada imagen tenga URL publica) y se publica por la Graph API.
-#
-#   placa evergreen -> si hoy NO hubo cambios. Una de las 40 de ig/placas/,
-#     siguiendo su rotacion.
-#
-# OJO CON EL HISTORIAL: hasta el 28/07 la placa era el RESPALDO del reel y solo
-# salia si el reel fallaba. Como el reel casi nunca falla, la placa no se
-# publicaba nunca y la rotacion quedo clavada meses en la misma. Por eso ahora
-# el criterio es "una imagen por dia" y no "por si acaso".
-#
-#   reel -> solo a pedido, pasando la ruta de un MP4 del repo al disparar el
-#     workflow. Quedo aca por comodidad. Ojo: los MP4 de la rotacion ya NO se
-#     commitean (van al release "media"), asi que para usar esto hay que
-#     agregar el archivo a mano con `git add -f`.
-#
-# Para que PUBLIQUE hacen falta dos secrets del repo (Settings -> Secrets and
-# variables -> Actions): IG_USER_ID e IG_ACCESS_TOKEN. Sin ellos genera y
-# commitea la imagen pero saltea el publish (ver SETUP-IG.md).
+# Para publicar hacen falta los secrets IG_USER_ID e IG_ACCESS_TOKEN (ver
+# SETUP-IG.md). Sin ellos genera y commitea la placa pero no publica.
 name: Instagram diario de Verdikt
 
 on:
   schedule:
-    # Tres intentos por noche, no tres posteos: GitHub atrasa los crons y a
-    # veces los saltea del todo (paso, ya, el 24/07). El primero que llegue
-    # postea y anota el dia en ig/media/last_day.txt; los siguientes ven ese
-    # marcador en el job "guard" y no hacen nada.
-    - cron: "20 22 * * *" # 22:20 UTC = 19:20 ART, despues del snapshot (21:10) y sus cambios
+    # Tres intentos por noche, no tres posteos: GitHub atrasa y a veces saltea
+    # los crons. El primero que llega postea y marca el dia; los otros ven el
+    # marcador en "guard" y no hacen nada.
+    - cron: "20 22 * * *" # 19:20 ART, despues del snapshot (21:10 UTC) y sus cambios
     - cron: "35 23 * * *" # 20:35 ART, reintento
-    - cron: "50 0 * * *" #  21:50 ART, ultimo intento del dia
+    - cron: "50 0 * * *" #  21:50 ART, ultimo intento
   workflow_dispatch:
     inputs:
       dry_run:
         description: "Probar sin publicar (dry-run)"
         type: boolean
         default: true
-      reel:
-        description: "Ruta de un MP4 del repo para publicar como reel (vacio = no publica reel)"
-        required: false
-        default: ""
+      tipo:
+        description: "Forzar tipo: hoy | veredicto | termometro | cambios | educativa"
+        default: "hoy"
 
 permissions:
-  contents: write # para pushear la imagen generada
+  contents: write
 
 concurrency:
   group: ig-daily
   cancel-in-progress: false
 
 jobs:
-  # Portero de los reintentos. Es un job aparte y no un paso mas para no tener
-  # que colgarle la condicion a los quince pasos de abajo: si dice que no, el
-  # job entero ni arranca.
   guard:
     runs-on: ubuntu-latest
     outputs:
@@ -67,15 +47,13 @@ jobs:
       - uses: actions/checkout@v4
       - id: g
         run: |
-          DIA=$(date -u -d '-3 hours' +%F) # dia en hora argentina
+          DIA=$(date -u -d '-3 hours' +%F)
           echo "Dia ART: $DIA"
-          # A mano siempre corre: si lo disparaste vos, es a proposito.
           if [ "${{ github.event_name }}" != "schedule" ]; then
-            echo "run=yes" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "run=yes" >> "$GITHUB_OUTPUT"; exit 0
           fi
           if [ "$(cat ig/media/last_day.txt 2>/dev/null)" = "$DIA" ]; then
-            echo "::notice::El posteo del $DIA ya salio: esta corrida no hace nada."
+            echo "::notice::El posteo del $DIA ya salio."
             echo "run=no" >> "$GITHUB_OUTPUT"
           else
             echo "run=yes" >> "$GITHUB_OUTPUT"
@@ -87,56 +65,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      # imageio-ffmpeg trae un ffmpeg con H.264 empaquetado. Hace falta: la
-      # imagen de ubuntu-latest ya NO incluye ffmpeg, y el encode del reel moria
-      # despues de renderizar los 600 frames.
-      - name: Instalar Pillow y ffmpeg
-        run: pip install pillow imageio-ffmpeg
+      - run: pip install pillow
+      - run: npm install --no-save playwright && npx playwright install --with-deps chromium
 
-      - name: Generar el posteo del dia
-        run: python ig_daily.py generate
+      - name: Generar la placa del dia
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: python make-ig-placa.py ${{ inputs.tipo || 'hoy' }}
 
-      # Se elige la placa aunque probablemente no se use: es el respaldo por si
-      # el reel no sale, y elegirla es instantaneo. Corre incluso si el paso
-      # anterior fallo (backend caido): no depende de datos del dia, y justo un
-      # dia sin datos es cuando mas hace falta tener con que postear.
-      - name: Elegir la placa del dia
-        if: ${{ !cancelled() && inputs.reel == '' }}
-        run: python ig_daily.py placa
-
-      # Estos tres son solo lecturas de estado, sin efecto sobre Instagram: van
-      # con !cancelled() para que un fallo al generar los cambios no se lleve
-      # puesto el camino de la placa, que depende de sus salidas.
-      # latest_images.txt trae una ruta por linea (caratula, un cambio por
-      # placa, cierre). Se pasan como una sola lista separada por comas: el
-      # orden es el del carrusel.
-      - name: ¿Hay algo para publicar?
-        id: check
-        if: ${{ !cancelled() }}
+      - name: Commitear la placa (le da URL publica)
         run: |
-          if [ -s ig/media/latest_images.txt ]; then
-            echo "post=yes" >> "$GITHUB_OUTPUT"
-            echo "images=$(paste -sd, ig/media/latest_images.txt)" >> "$GITHUB_OUTPUT"
-          else
-            echo "post=no" >> "$GITHUB_OUTPUT"
-            echo "Sin cambios de veredicto hoy: no se publica."
-          fi
+          git config user.name "verdikt-bot"
+          git config user.email "bot@verdikt.finance"
+          git add ig/media/placa_hoy.png ig/media/last_educativa.txt
+          git commit -m "IG: placa del dia ($(cat ig/media/placa_render.txt 2>/dev/null || echo hoy))" || echo "sin cambios"
+          git pull --rebase --autostash
+          git push
 
       - name: ¿Estan los secrets de Instagram?
         id: cfg
-        if: ${{ !cancelled() }}
         run: echo "ready=${{ secrets.IG_ACCESS_TOKEN != '' && secrets.IG_USER_ID != '' }}" >> "$GITHUB_OUTPUT"
 
-      # Se decide una sola vez y lo usan los dos publish: si cada uno repitiera
-      # la condicion, alcanzaria con tocar una para publicar de verdad sin querer.
       - name: ¿Dry-run o de verdad?
         id: mode
-        if: ${{ !cancelled() }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
             echo "dry=--dry-run" >> "$GITHUB_OUTPUT"
@@ -144,98 +100,29 @@ jobs:
             echo "dry=" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Commitear las imagenes (les da URL publica)
-        if: steps.check.outputs.post == 'yes'
+      - name: Publicar en Instagram
+        if: steps.cfg.outputs.ready == 'true'
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: |
+          URL="https://raw.githubusercontent.com/${{ github.repository }}/$(git rev-parse HEAD)/ig/media/placa_hoy.png"
+          echo "Placa: $URL"
+          curl -sIL "$URL" | grep -iE "^HTTP|^content-length" | head -4
+          sleep 10 # que el CDN de GitHub sirva esa SHA
+          python ig_publish.py --image-url "$URL" --caption-file ig/media/placa_hoy.txt ${{ steps.mode.outputs.dry }}
+
+      - name: Marcar el dia como publicado
+        if: steps.cfg.outputs.ready == 'true' && steps.mode.outputs.dry == ''
         run: |
           git config user.name "verdikt-bot"
           git config user.email "bot@verdikt.finance"
-          git add ig/media
-          git commit -m "IG: carrusel de cambios de veredicto ($(date -u +%F))" || echo "nada que commitear"
+          date -u -d '-3 hours' +%F > ig/media/last_day.txt
+          git add ig/media/last_day.txt
+          git commit -m "IG: placa publicada ($(date -u -d '-3 hours' +%F))" || echo "sin cambios"
+          git pull --rebase --autostash
           git push
-
-      - name: Publicar en Instagram
-        if: steps.check.outputs.post == 'yes' && steps.cfg.outputs.ready == 'true'
-        env:
-          IG_USER_ID: ${{ secrets.IG_USER_ID }}
-          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
-        run: |
-          SHA=$(git rev-parse HEAD)
-          BASE="https://raw.githubusercontent.com/${{ github.repository }}/$SHA"
-          URLS=""
-          for IMG in $(echo "${{ steps.check.outputs.images }}" | tr ',' ' '); do
-            URLS="${URLS:+$URLS,}$BASE/$IMG"
-            echo "  $BASE/$IMG"
-          done
-          sleep 10 # darle al CDN de GitHub un momento para servir esa SHA
-          python ig_daily.py publish --image-urls "$URLS" ${{ steps.mode.outputs.dry }}
-
-      # El marcador de "ultima fecha publicada" solo sirve si sobrevive a la
-      # corrida: sin este commit, manana el repo no sabria que ya se posteo.
-      - name: Commitear el marcador de publicado
-        if: steps.check.outputs.post == 'yes' && steps.cfg.outputs.ready == 'true'
-        run: |
-          if [ -f ig/media/last_published.txt ]; then
-            git add ig/media/last_published.txt
-            git commit -m "IG: marca publicado ($(cat ig/media/last_published.txt))" || echo "sin cambios"
-            git push
-          fi
-
-      # ── Placa: la imagen del dia cuando no hubo cambios ───────────────────
-      # ANTES era el respaldo del reel y solo salia si el reel fallaba; como el
-      # reel casi nunca falla, en la practica no se publicaba NUNCA y la
-      # rotacion de 40 placas quedo clavada meses en la misma. Desde el
-      # 2026-07-28 el criterio es otro: una imagen por dia, siempre. Si hubo
-      # cambios de veredicto, esa imagen es el carrusel; si no hubo, la placa.
-      #
-      # Su PNG ya esta en el repo desde hace commits, asi que no hay nada que
-      # pushear ni esperar al CDN.
-      - name: Publicar la placa del dia
-        if: ${{ !cancelled() && inputs.reel == '' && steps.check.outputs.post != 'yes' && steps.cfg.outputs.ready == 'true' }}
-        env:
-          IG_USER_ID: ${{ secrets.IG_USER_ID }}
-          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
-        run: |
-          if [ ! -f ig/media/placa_image.txt ]; then
-            echo "Sin placa para hoy: no se publica."
-            exit 0
-          fi
-          IMG=$(cat ig/media/placa_image.txt)
-          URL="https://raw.githubusercontent.com/${{ github.repository }}/$(git rev-parse HEAD)/$IMG"
-          echo "Placa publica: $URL"
-          python ig_daily.py publish-placa --image-url "$URL" ${{ steps.mode.outputs.dry }}
-
-      # Igual que el marcador de los cambios: sin este commit la rotacion no
-      # avanza y manana volveria a tocar la misma placa.
-      - name: Commitear la rotacion de la placa
-        if: ${{ !cancelled() && inputs.reel == '' && steps.check.outputs.post != 'yes' && steps.cfg.outputs.ready == 'true' }}
-        run: |
-          if [ -f ig/media/last_placa.txt ]; then
-            git config user.name "verdikt-bot"
-            git config user.email "bot@verdikt.finance"
-            git add ig/media/last_placa.txt ig/media/last_day.txt
-            git commit -m "IG: placa publicada ($(cat ig/media/last_placa.txt))" || echo "sin cambios"
-            git push
-          fi
-
-      # El MP4 tiene que estar COMMITEADO: Instagram no recibe bytes, baja el
-      # video de una URL publica https. Se chequea que el archivo y su caption
-      # existan ANTES de hablar con la Graph API, porque un 404 deja el
-      # contenedor en ERROR con un mensaje que no explica nada.
-      - name: Publicar el reel indicado
-        if: ${{ !cancelled() && inputs.reel != '' && steps.cfg.outputs.ready == 'true' }}
-        env:
-          IG_USER_ID: ${{ secrets.IG_USER_ID }}
-          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
-        run: |
-          VIDEO="${{ inputs.reel }}"
-          CAP="${VIDEO%.mp4}.txt"
-          test -f "$VIDEO" || { echo "::error::No existe $VIDEO en el repo"; exit 1; }
-          test -f "$CAP"   || { echo "::error::No existe el caption $CAP"; exit 1; }
-          URL="https://raw.githubusercontent.com/${{ github.repository }}/$(git rev-parse HEAD)/$VIDEO"
-          echo "Video publico: $URL"
-          curl -sI "$URL" | head -3   # si el CDN todavia no lo sirve, se ve aca
-          python ig_publish.py --video-url "$URL" --caption-file "$CAP" ${{ steps.mode.outputs.dry }}
 
       - name: Aviso si falta configurar
         if: steps.cfg.outputs.ready != 'true'
-        run: echo "::notice::Las imagenes se generaron, pero faltan los secrets IG_USER_ID / IG_ACCESS_TOKEN para publicar. Ver SETUP-IG.md."
+        run: echo "::notice::Placa generada, pero faltan los secrets IG_USER_ID / IG_ACCESS_TOKEN para publicar."
